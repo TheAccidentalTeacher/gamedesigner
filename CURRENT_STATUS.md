@@ -1,8 +1,8 @@
 # Current System Status
 
-**Date**: December 12, 2025  
-**Version**: v1.3.0  
-**Next Version**: v2.0.0 (Multi-Agent System - PLANNED)
+**Date**: December 14, 2025  
+**Version**: v1.5.0  
+**Next Version**: v2.0.0 (Deep Research + Video Processing)
 
 ---
 
