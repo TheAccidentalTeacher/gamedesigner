@@ -1558,20 +1558,36 @@ button:active {
 .persona-buttons {
     display: flex;
     gap: 8px;
-    margin-top: 8px;
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid #3c3c3c;
 }
 
 .persona-select-all,
 .persona-clear-all {
     flex: 1;
-    padding: 6px 12px;
-    font-size: 11px;
-    background: #3c3c3c;
-    border: 1px solid #3c3c3c;
+    padding: 8px 12px;
+    font-size: 12px;
+    font-weight: 500;
+    background: #007acc;
+    border: 1px solid #0088dd;
     border-radius: 4px;
-    color: #cccccc;
+    color: #ffffff;
     cursor: pointer;
     transition: all 0.2s ease;
+}
+
+.persona-select-all:hover,
+.persona-clear-all:hover {
+    background: #0088dd;
+    border-color: #00aaff;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(0, 136, 221, 0.3);
+}
+
+.persona-select-all:active,
+.persona-clear-all:active {
+    transform: translateY(0);
 }
 
 .persona-select-all:hover,
