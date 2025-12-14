@@ -2303,3 +2303,136 @@ button:active {
         transform: translateY(0);
     }
 }
+/* --
+   RESEARCH MODE STYLES (Phase 6)
+   -- */
+
+.research-results {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    height: 100%;
+}
+
+.research-header {
+    padding: 16px;
+    background: #2d2d2d;
+    border-radius: 4px;
+    border-left: 4px solid #4A90E2;
+}
+
+.research-header h3 {
+    margin: 0 0 8px 0;
+    color: #fff;
+    font-size: 18px;
+}
+
+.research-query {
+    font-size: 16px;
+    color: #4A90E2;
+    margin: 8px 0;
+    font-weight: 500;
+}
+
+.research-stats {
+    display: flex;
+    gap: 16px;
+    margin-top: 12px;
+    font-size: 13px;
+    color: #999;
+}
+
+.research-stats span {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.research-results-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    overflow-y: auto;
+    flex: 1;
+}
+
+.research-result-item {
+    padding: 16px;
+    background: #2d2d2d;
+    border-radius: 4px;
+    border: 1px solid #3c3c3c;
+    transition: all 0.2s;
+}
+
+.research-result-item:hover {
+    border-color: #4A90E2;
+    background: #333;
+}
+
+.result-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 8px;
+}
+
+.result-number {
+    font-size: 14px;
+    color: #4A90E2;
+    font-weight: bold;
+    min-width: 30px;
+}
+
+.result-title {
+    color: #fff;
+    text-decoration: none;
+    font-size: 16px;
+    font-weight: 500;
+    flex: 1;
+    line-height: 1.4;
+}
+
+.result-title:hover {
+    color: #4A90E2;
+    text-decoration: underline;
+}
+
+.result-score {
+    font-size: 12px;
+    color: #888;
+    background: #3c3c3c;
+    padding: 4px 8px;
+    border-radius: 3px;
+}
+
+.result-url {
+    font-size: 12px;
+    color: #666;
+    margin-bottom: 8px;
+    word-break: break-all;
+}
+
+.result-snippet {
+    font-size: 14px;
+    color: #ccc;
+    line-height: 1.6;
+    margin-bottom: 8px;
+}
+
+.result-meta {
+    display: flex;
+    gap: 16px;
+    font-size: 12px;
+    color: #888;
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px solid #3c3c3c;
+}
+
+.result-source {
+    color: #4A90E2;
+}
+
+.result-date {
+    color: #999;
+}

@@ -194,6 +194,54 @@ class MultiAgentClient {
       throw error;
     }
   }
+
+  /**
+   * Research: Multi-source web search
+   * Phase 6: Deep research capabilities
+   * 
+   * @param {string} query - Search query
+   * @param {object} options - Search options (maxResults, etc.)
+   * @returns {Promise<object>} Search results with stats
+   */
+  async research(query, options = {}) {
+    try {
+      console.log(`%c🔍 Research API Call`, 'color: #4A90E2; font-weight: bold');
+      console.log(`   🔎 Query: ${query}`);
+      console.log(`   ⚙️ Options:`, options);
+
+      const researchEndpoint = `${this.apiBaseUrl}/research`;
+      console.log(`   📡 Endpoint: ${researchEndpoint}`);
+
+      const response = await fetch(researchEndpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ query, options })
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || error.error || 'Research request failed');
+      }
+
+      const result = await response.json();
+
+      if (!result.success) {
+        throw new Error(result.error || 'Research failed');
+      }
+
+      console.log(`%c✅ Research API Success`, 'color: #00FF00; font-weight: bold');
+      console.log(`   📊 Results: ${result.results.length}`);
+      console.log(`   ⏱️ Duration: ${result.stats.totalDuration}ms`);
+      console.log(`   🔗 Sources: ${result.stats.totalSources} → ${result.stats.afterDeduplication} (deduplicated)`);
+
+      return result;
+    } catch (error) {
+      console.error(`%c❌ Research API Error: ${error.message}`, 'color: #FF0000; font-weight: bold');
+      throw error;
+    }
+  }
 }
 
 // Export for ES6 modules

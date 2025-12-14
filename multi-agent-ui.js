@@ -266,8 +266,8 @@ class MultiAgentUIController {
   selectMode(mode) {
     log('INFO', `🧭 selectMode() called with mode: "${mode}"`);
     
-    if (!['panel', 'consensus', 'debate', 'conversation'].includes(mode)) {
-      log('ERROR', `Invalid mode "${mode}". Must be one of: panel, consensus, debate, conversation`);
+    if (!['panel', 'consensus', 'debate', 'conversation', 'research'].includes(mode)) {
+      log('ERROR', `Invalid mode "${mode}". Must be one of: panel, consensus, debate, conversation, research`);
       return;
     }
 
@@ -281,8 +281,17 @@ class MultiAgentUIController {
     if (mode === 'conversation') {
       if (workflowBtn) workflowBtn.style.display = 'none';
       if (conversationBtn) conversationBtn.style.display = 'block';
+    } else if (mode === 'research') {
+      if (workflowBtn) {
+        workflowBtn.style.display = 'block';
+        workflowBtn.textContent = '🔍 Start Research';
+      }
+      if (conversationBtn) conversationBtn.style.display = 'none';
     } else {
-      if (workflowBtn) workflowBtn.style.display = 'block';
+      if (workflowBtn) {
+        workflowBtn.style.display = 'block';
+        workflowBtn.textContent = '▶️ Execute Workflow';
+      }
       if (conversationBtn) conversationBtn.style.display = 'none';
     }
     
@@ -381,6 +390,11 @@ class MultiAgentUIController {
     log('DEBUG', `Question length: ${question?.length || 0} chars`);
     log('DEBUG', `Current mode: ${this.currentMode}`);
     log('DEBUG', `Selected personas: ${this.selectedPersonas.length}`);
+
+    // Handle research mode
+    if (this.currentMode === 'research') {
+      return await this.executeResearch(question);
+    }
     
     if (this.selectedPersonas.length === 0) {
       log('WARN', '⚠️ No personas selected - auto-selecting all');
@@ -1022,6 +1036,109 @@ class MultiAgentUIController {
     } finally {
       this.setLoading(false);
     }
+  }
+
+  /**
+   * Execute research workflow
+   * Phase 6: Deep research with multi-source search
+   */
+  async executeResearch(query) {
+    log('INFO', '🔍 executeResearch() called');
+    const startTime = performance.now();
+
+    if (!query) {
+      log('ERROR', '❌ No query provided!');
+      alert('⚠️ Please enter a search query');
+      return;
+    }
+
+    try {
+      log('SUCCESS', '✅ Query validated, starting research...');
+      this.setLoading(true);
+      this.showLoadingState();
+
+      log('API', `📨 Sending research query: "${query}"`);
+      
+      const startAPITime = performance.now();
+      const result = await this.client.research(query, {
+        maxResults: 10
+      });
+      const apiTime = performance.now() - startAPITime;
+      
+      log('PERF', `⚡ Research response received in ${(apiTime).toFixed(2)}ms`);
+      log('SUCCESS', '✅ Research completed successfully');
+      log('DEBUG', `Found ${result.results.length} results`);
+      log('DEBUG', `Stats:`, result.stats);
+
+      this.currentResult = result;
+      this.displayResearchResults(result);
+
+      const totalTime = performance.now() - startTime;
+      log('PERF', `⚡ Total execution time: ${(totalTime / 1000).toFixed(2)}s`);
+
+    } catch (error) {
+      log('ERROR', `❌ Research failed: ${error.message}`);
+      this.showError(error.message);
+    } finally {
+      this.setLoading(false);
+    }
+  }
+
+  /**
+   * Display research results
+   */
+  displayResearchResults(result) {
+    log('UI', '🎨 Rendering research results');
+    const resultsContainer = document.querySelector('.multi-agent-results');
+    if (!resultsContainer) {
+      log('ERROR', 'Results container not found!');
+      return;
+    }
+
+    const { results, stats, query } = result;
+
+    let html = `
+      <div class="research-results">
+        <div class="research-header">
+          <h3>🔍 Research Results</h3>
+          <div class="research-query">"${this.escapeHtml(query)}"</div>
+          <div class="research-stats">
+            <span>📊 ${results.length} results</span>
+            <span>⏱️ ${stats.totalDuration}ms</span>
+            <span>🔗 ${stats.totalSources} sources (${stats.afterDeduplication} unique)</span>
+          </div>
+        </div>
+        <div class="research-results-list">
+    `;
+
+    results.forEach((result, index) => {
+      const sources = result.sources ? result.sources.join(', ') : result.source;
+      html += `
+        <div class="research-result-item">
+          <div class="result-header">
+            <span class="result-number">#${index + 1}</span>
+            <a href="${this.escapeHtml(result.url)}" target="_blank" class="result-title">
+              ${this.escapeHtml(result.title)}
+            </a>
+            <span class="result-score">Score: ${result.relevanceScore?.toFixed(1) || 'N/A'}</span>
+          </div>
+          <div class="result-url">${this.escapeHtml(result.url)}</div>
+          <div class="result-snippet">${this.escapeHtml(result.snippet)}</div>
+          <div class="result-meta">
+            <span class="result-source">📡 ${sources}</span>
+            ${result.date || result.publishedDate ? `<span class="result-date">📅 ${result.date || result.publishedDate}</span>` : ''}
+          </div>
+        </div>
+      `;
+    });
+
+    html += `
+        </div>
+      </div>
+    `;
+
+    resultsContainer.innerHTML = html;
+    log('SUCCESS', '✅ Research results rendered');
   }
 }
 
