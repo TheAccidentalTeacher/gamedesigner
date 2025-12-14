@@ -128,10 +128,12 @@ exports.handler = async (event, context) => {
     console.log('[API] ✓ Body parsed successfully');
     console.log(`[API] Request keys: ${Object.keys(parsedBody).join(', ')}`);
     
-    const { question, mode = 'panel', personas } = parsedBody;
+    const { question, mode = 'panel', personas, provider = 'anthropic', model } = parsedBody;
     
     console.log(`[API] Question: ${question.substring(0, 100)}${question.length > 100 ? '...' : ''}`);
     console.log(`[API] Mode: ${mode}`);
+    console.log(`[API] Provider: ${provider}`);
+    console.log(`[API] Model: ${model || '(default)'}`);
     console.log(`[API] Custom personas: ${personas ? personas.join(', ') : 'none (auto-select)'}`);
 
     // Validate request
@@ -156,7 +158,7 @@ exports.handler = async (event, context) => {
     
     // Dynamic import of ESM module
     const { executeMultiAgentWorkflow } = await import('../../langgraph-agents.js');
-    const result = await executeMultiAgentWorkflow(question, personas, mode);
+    const result = await executeMultiAgentWorkflow(question, personas, mode, { provider, model });
     
     const executionTime = Date.now() - startTime;
     console.log(`[API] ✅ Workflow completed in ${executionTime}ms`);

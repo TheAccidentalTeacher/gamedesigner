@@ -19,10 +19,14 @@ class MultiAgentClient {
    * @param {string[]} personas - Optional array of persona names to use
    * @returns {Promise<object>} Response with synthesis and individual responses
    */
-  async executeWorkflow(question, mode = 'panel', personas = null) {
+  async executeWorkflow(question, mode = 'panel', personas = null, options = {}) {
     try {
+      const { provider = 'anthropic', model } = options;
+      
       console.log(`%c🤖 Multi-Agent API Call`, 'color: #FF8800; font-weight: bold');
       console.log(`   📨 Mode: ${mode}`);
+      console.log(`   🤖 Provider: ${provider}`);
+      console.log(`   🤖 Model: ${model || '(default)'}`);
       console.log(`   ❓ Question: ${question.substring(0, 100)}${question.length > 100 ? '...' : ''}`);
       console.log(`   👥 Personas: ${personas?.length || 'auto-select'}`);
       console.log(`   🔗 Endpoint: ${this.endpoint}`);
@@ -30,6 +34,8 @@ class MultiAgentClient {
       const payload = {
         question,
         mode,
+        provider,
+        ...(model && { model }),
         ...(personas && { personas })
       };
 

@@ -379,8 +379,22 @@ class MultiAgentUIController {
       this.setLoading(true);
       this.showLoadingState();
       
+      // Get provider and model from localStorage (set by editor.js)
+      let provider = 'anthropic';
+      let model = undefined;
+      try {
+        const aiConfig = JSON.parse(localStorage.getItem('aiConfig') || '{}');
+        if (aiConfig.provider) provider = aiConfig.provider;
+        if (aiConfig.anthropic_model && provider === 'anthropic') model = aiConfig.anthropic_model;
+        if (aiConfig.openai_model && provider === 'openai') model = aiConfig.openai_model;
+      } catch (e) {
+        log('DEBUG', `Could not parse AI config from localStorage: ${e.message}`);
+      }
+      
       log('API', `📨 Sending to API:`);
       log('DEBUG', `  Mode: ${this.currentMode}`);
+      log('DEBUG', `  Provider: ${provider}`);
+      log('DEBUG', `  Model: ${model || '(default)'}`);
       log('DEBUG', `  Personas: ${this.selectedPersonas.length} selected`);
       log('DEBUG', `  Selected: [${this.selectedPersonas.slice(0, 3).join(', ')}${this.selectedPersonas.length > 3 ? '...' : ''}]`);
       log('DEBUG', `  Question: "${question.substring(0, 100)}${question.length > 100 ? '...' : ''}"`);
@@ -391,7 +405,8 @@ class MultiAgentUIController {
       const result = await this.client.executeWorkflow(
         question,
         this.currentMode,
-        this.selectedPersonas.length > 0 ? this.selectedPersonas : null
+        this.selectedPersonas.length > 0 ? this.selectedPersonas : null,
+        { provider, model }
       );
       const apiTime = performance.now() - startAPITime;
       

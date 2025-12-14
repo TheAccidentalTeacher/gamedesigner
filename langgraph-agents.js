@@ -157,12 +157,14 @@ function getPersonaFileNameFromDisplay(displayName) {
 // ============================================================================
 
 /**
- * Create appropriate LLM client based on model preference
+ * Create appropriate LLM client based on provider preference
  */
-function createLLMClient(model = "gpt-4o") {
-  if (model.startsWith("gpt")) {
+function createLLMClient(model = "claude-sonnet-4-5", provider = "anthropic") {
+  console.log(`  🤖 Creating LLM client: provider=${provider}, model=${model}`);
+  
+  if (provider === "openai" || model?.startsWith("gpt")) {
     return new ChatOpenAI({
-      model: model,
+      model: model || "gpt-4o",
       temperature: 0.7,
       maxTokens: 500
     });
@@ -170,7 +172,7 @@ function createLLMClient(model = "gpt-4o") {
 
   // Default to Anthropic Claude
   return new ChatAnthropic({
-    model: model,
+    model: model || "claude-sonnet-4-5",
     temperature: 0.7,
     maxTokens: 500
   });
@@ -185,12 +187,13 @@ function createLLMClient(model = "gpt-4o") {
  */
 export function createPersonaAgent(
   personaName,
-  model = "gpt-4o",
-  memory = null
+  model = "claude-sonnet-4-5",
+  memory = null,
+  provider = "anthropic"
 ) {
   const personaContent = loadPersonaContent(personaName);
   const personaInfo = getPersonaInfo(personaName);
-  const llm = createLLMClient(model);
+  const llm = createLLMClient(model, provider);
 
   return async (state) => {
     try {
@@ -254,7 +257,7 @@ Reference specific expertise from your background.`;
  * - Which interaction mode is best
  */
 export async function routerAgent(state) {
-  const llm = createLLMClient("gpt-4o");
+  const llm = createLLMClient("claude-sonnet-4-5");
 
   const personas = allPersonas
     .map((p) => getPersonaInfo(p))
@@ -595,12 +598,13 @@ export async function executeMultiAgentWorkflow(
   question,
   selectedPersonas = [],
   mode = "auto",
-  conversationId = null,
-  includeMemory = true
+  options = {}
 ) {
+  const { provider = 'anthropic', model } = options;
   const startTime = new Date();
   console.log(`\n🚀 Multi-Agent Workflow Starting`);
   console.log(`⏱️  Time: ${startTime.toISOString()}`);
+  console.log(`🤖 Provider: ${provider}, Model: ${model || '(default)'}`);
 
   try {
     // If no personas selected or mode is auto, use router to decide
