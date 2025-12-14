@@ -130,10 +130,11 @@ class MultiAgentClient {
   }
 }
 
-// Export for use in modules or create global if in browser
-if (typeof module !== 'undefined' && module.exports) {
-  module.exports = MultiAgentClient;
-}
+// Export for ES6 modules
+export default MultiAgentClient;
+
+// Also export as named export
+export { MultiAgentClient };
 
 // Make available globally in browser
 if (typeof window !== 'undefined') {
