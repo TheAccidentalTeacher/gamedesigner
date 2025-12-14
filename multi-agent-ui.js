@@ -582,39 +582,87 @@ class MultiAgentUIController {
   formatMarkdown(content) {
     if (!content) return '';
     
-    let html = content;
+    const lines = content.split('\n');
+    const result = [];
+    let inList = false;
+    let inParagraph = false;
+    let paragraphLines = [];
     
-    // Convert headings (must be before other replacements)
-    html = html.replace(/^### (.*?)$/gm, '<h3>$1</h3>');
-    html = html.replace(/^## (.*?)$/gm, '<h2>$1</h2>');
-    html = html.replace(/^# (.*?)$/gm, '<h1>$1</h1>');
-    
-    // Convert bold and italic
-    html = html.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-    html = html.replace(/\*(.*?)\*/g, '<em>$1</em>');
-    
-    // Convert lists
-    html = html.replace(/^- (.*?)$/gm, '<li>$1</li>');
-    html = html.replace(/(<li>.*?<\/li>)/s, '<ul>$1</ul>');
-    
-    // Convert paragraphs - split by double newline
-    const paragraphs = html.split(/\n\n+/);
-    html = paragraphs
-      .map(para => {
-        // Skip if already wrapped in tags
-        if (para.trim().match(/^<[hul]/)) {
-          return para;
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+      const trimmed = line.trim();
+      
+      // Skip empty lines
+      if (!trimmed) {
+        if (paragraphLines.length > 0) {
+          // End current paragraph
+          const paraText = paragraphLines.join(' ');
+          let html = paraText
+            .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+            .replace(/\*(.*?)\*/g, '<em>$1</em>');
+          result.push(`<p>${html}</p>`);
+          paragraphLines = [];
         }
-        // Skip if it's a list item
-        if (para.trim().match(/^<li/)) {
-          return para;
+        inParagraph = false;
+        inList = false;
+        continue;
+      }
+      
+      // Handle headings
+      if (trimmed.match(/^###\s+/)) {
+        result.push(`<h3>${trimmed.replace(/^###\s+/, '')}</h3>`);
+        inParagraph = false;
+        continue;
+      }
+      if (trimmed.match(/^##\s+/)) {
+        result.push(`<h2>${trimmed.replace(/^##\s+/, '')}</h2>`);
+        inParagraph = false;
+        continue;
+      }
+      if (trimmed.match(/^#\s+/)) {
+        result.push(`<h1>${trimmed.replace(/^#\s+/, '')}</h1>`);
+        inParagraph = false;
+        continue;
+      }
+      
+      // Handle lists
+      if (trimmed.match(/^-\s+/)) {
+        if (!inList) {
+          result.push('<ul>');
+          inList = true;
         }
-        // Wrap plain text paragraphs
-        return para.trim() ? `<p>${para.trim()}</p>` : '';
-      })
-      .join('\n');
+        const listItem = trimmed.replace(/^-\s+/, '');
+        let html = listItem
+          .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+          .replace(/\*(.*?)\*/g, '<em>$1</em>');
+        result.push(`  <li>${html}</li>`);
+        continue;
+      }
+      
+      // Close list if we're not in one anymore
+      if (inList && !trimmed.match(/^-\s+/)) {
+        result.push('</ul>');
+        inList = false;
+      }
+      
+      // Handle regular text as paragraphs
+      paragraphLines.push(trimmed);
+      inParagraph = true;
+    }
     
-    return html;
+    // Close any open tags
+    if (paragraphLines.length > 0) {
+      const paraText = paragraphLines.join(' ');
+      let html = paraText
+        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+        .replace(/\*(.*?)\*/g, '<em>$1</em>');
+      result.push(`<p>${html}</p>`);
+    }
+    if (inList) {
+      result.push('</ul>');
+    }
+    
+    return result.join('\n');
   }
 
   formatPersonaName(personaName) {
