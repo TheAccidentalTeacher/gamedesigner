@@ -4,7 +4,20 @@ A lightweight, browser-based 2D game level editor that works with any game. Buil
 
 ## Features
 
-- **🤖 AI Assistant Panel** (NEW v1.2.0) - Complete AI chat interface with settings, conversation management, and provider configuration
+### AI & Personas (v1.5.0 - Phase 0, 1, 1.5 Complete)
+- **🎭 Persona System** - 12 deeply-researched expert personas (Master Teacher, Technical Architect, Strategist, Theologian, Writer, Analyst, Debugger, Classical Educator, Gen Alpha Expert, UX Designer, Marketing Strategist, Game Designer)
+- **🧠 Agent Memory** - Each persona remembers past conversations, learns preferences, tracks topics
+- **💬 Smart Context** - Memory-enhanced responses that reference previous discussions
+- **📊 Memory Viewer** - View conversation history, insights, and learned preferences
+- **🤖 Multi-Provider AI** - Support for Anthropic Claude (5 models) + OpenAI GPT (5 models)
+- **📚 Research-Driven** - Each persona built with 30-60 min domain research, frameworks, voice characteristics
+
+### Planned (v2.0.0 - Phase 2)
+- **🚀 Multi-Agent System** - LangGraph.js-powered orchestration with true agent-to-agent conversation
+- **💭 Multi-Turn Debates** - Agents discuss, debate, and build consensus in real-time
+- **🎯 Specialized Agents** - Each Fellowship character as independent agent with separate reasoning
+
+### Core Editor Features
 - **✨ Universal Tooltips** (v1.1.0) - Every UI element has helpful, context-aware tooltips with keyboard shortcuts
 - **Load Background Images**: Set your level background from any image file
 - **Add Game Assets**: Browse and add multiple sprites/objects to your scene
@@ -98,7 +111,80 @@ Works in all modern browsers:
 
 Netlify will automatically redeploy when you push to GitHub!
 
+## Current Status & Roadmap
+
+### ✅ Completed Features (v1.4.0)
+
+**Phase 0 - Persona System** (1 hour - COMPLETE)
+- Persona loading from markdown files
+- UI indicators showing active persona
+- Two working personas (Default, Fellowship)
+- Enhanced logging and debugging tools
+
+**Phase 1 - Agent Memory** (4 hours - COMPLETE)
+- AgentMemory class (350 lines)
+- Short-term memory (last 20 interactions)
+- Long-term insights (preferences, topics, project context)
+- Memory UI with viewer modal, stats, and export
+- Persona-specific memory isolation via localStorage
+
+### ✅ Phase 1.5 Complete - Scott's Agent Council (12 hours)
+
+**12 Deeply-Researched Expert Personas**:
+- **Core Council** (7 personas for daily use): Master Teacher, Technical Architect, Strategist, Theologian, Writer, Analyst, Debugger
+- **Specialty Consultants** (5 personas as needed): Classical Educator, Gen Alpha Expert, UX Designer, Marketing Strategist, Game Designer
+- **Research-driven**: 30-60 min research per persona covering frameworks, voice, problem-solving approaches
+- **Scott-specific**: Tailored for The Accidental Teacher project, Alaska context, Reformed Baptist worldview
+
+**UX & Interface**:
+- **Resizable AI Panel**: Drag left edge to resize (350-600px), saves preference
+- **Proper Collapse**: × button hides panel completely, reclaims screen space
+- **Reopen Button**: Vertical "🤖 AI" button on right edge when collapsed
+- **Quick-Switcher UI**: On-the-fly persona switching from AI panel dropdown
+- **Persona Badge System**: Color-coded badges show active persona (Core = green, Specialists = orange)
+- **Self-Contained Controls**: All AI buttons in panel header (memory, settings, checkpoint, clear)
+- **Markdown Formatting**: AI responses with headers, code blocks, lists, proper styling
+- **Message Timestamps**: Every message shows time for conversation context
+- **Keyboard Shortcuts**: Ctrl+K to clear chat, visual hints for shortcuts
+- **Loading States**: Animated typing indicators for better feedback
+
+**Documentation**: Comprehensive research notes, user guide, verification protocol, UX changelog
+
+See `AGENT_COUNCIL_GUIDE.md` for full persona list and usage guide.  
+See `UX_IMPROVEMENTS.md` for UX features changelog.  
+See `AI_PANEL_IMPROVEMENTS.md` for resizable panel details.
+
+### 🎯 Next Phase
+
+**Phase 2 - Multi-Agent Orchestration** (PLANNED - 8-12 hours)
+Transform personas into true multi-agent system using LangGraph.js:
+- Turn-taking conversations between agents
+- Panel discussions (sequential responses)
+- Debate mode (back-and-forth argumentation)
+- Consensus building (parallel analysis + voting)
+- Orchestrated workflows (router → agents → synthesis)
+
+**Documentation**:
+- **[LANGGRAPH_MULTIAGENT_PLAN.md](LANGGRAPH_MULTIAGENT_PLAN.md)** - Complete Phase 2 plan
+- **[LANGGRAPH_TECHNICAL_REFERENCE.md](LANGGRAPH_TECHNICAL_REFERENCE.md)** - LangGraph.js API guide
+- **[MULTIAGENT_DOCS_INDEX.md](MULTIAGENT_DOCS_INDEX.md)** - Documentation index
+
+## Documentation
+
+### Phase Documentation
+- **[PHASE_0_VERIFICATION.md](PHASE_0_VERIFICATION.md)** - ✅ Persona activation & testing
+- **[PHASE_1_PLAN.md](PHASE_1_PLAN.md)** - ✅ Memory system architecture
+
+### Persona Guides
+- **[personas/README.md](personas/README.md)** - Persona system guide
+- **[FELLOWSHIP_GUIDE.md](FELLOWSHIP_GUIDE.md)** - Fellowship multi-character details
+
+### Technical References
+- **[CURRENT_STATUS.md](CURRENT_STATUS.md)** - System inventory & status
+
 ## Future Enhancements
+
+### Additional Future Features
 
 Potential features based on real-world usage:
 - Grid snapping toggle

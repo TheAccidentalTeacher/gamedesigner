@@ -189,18 +189,33 @@ class GameEditor {
         // Load saved configuration if exists
         this.loadAIConfig();
         
+        // Update persona indicator after config loaded
+        const config = JSON.parse(localStorage.getItem('ai_config') || '{}');
+        this.updatePersonaIndicator(config.persona || 'default');
+        
+        // Update memory stats
+        this.updateMemoryStats();
+        
+        // Restore saved panel width
+        const savedWidth = localStorage.getItem('ai_panel_width') || '450px';
+        document.getElementById('workspace').style.gridTemplateColumns = `1fr 320px ${savedWidth}`;
+        
         console.log('✓ AI Panel initialized');
     }
 
     setupAIPanelListeners() {
         // Toggle collapse/expand
         document.getElementById('ai-toggle').addEventListener('click', () => {
-            this.aiPanel.classList.toggle('collapsed');
-            const btn = document.getElementById('ai-toggle');
-            btn.title = this.aiPanel.classList.contains('collapsed') 
-                ? 'Expand AI panel' 
-                : 'Collapse AI panel';
+            this.closeAIPanel();
         });
+        
+        // Reopen AI panel
+        document.getElementById('ai-reopen').addEventListener('click', () => {
+            this.openAIPanel();
+        });
+        
+        // Setup resize functionality
+        this.setupAIPanelResize();
 
         // Open settings modal
         document.getElementById('ai-settings').addEventListener('click', () => {
@@ -232,28 +247,81 @@ class GameEditor {
             this.switchAIProvider(e.target.value);
         });
 
+        // Quick model switch in header
+        document.getElementById('quick-model-switch').addEventListener('change', (e) => {
+            this.quickSwitchModel(e.target.value);
+        });
+
+        // Quick persona switch in header
+        document.getElementById('quick-persona-switch').addEventListener('change', (e) => {
+            this.quickSwitchPersona(e.target.value);
+        });
+        
+        // Keyboard shortcuts for AI
+        document.addEventListener('keydown', (e) => {
+            // Ctrl+K: Clear chat
+            if (e.ctrlKey && e.key === 'k' && document.getElementById('ai-input') === document.activeElement) {
+                e.preventDefault();
+                this.clearConversation();
+            }
+        });
+
         // Close modal on overlay click
         this.aiSettingsModal.querySelector('.modal-overlay').addEventListener('click', () => {
             this.closeAISettings();
         });
 
-        // AI input handling (Phase 3 will implement actual sending)
+        // Memory UI handlers
+        document.getElementById('view-memory').addEventListener('click', () => {
+            this.showMemoryViewer();
+        });
+
+        document.getElementById('clear-memory').addEventListener('click', () => {
+            if (confirm('Clear all memory for this persona? This cannot be undone.')) {
+                const config = JSON.parse(localStorage.getItem('ai_config') || '{}');
+                const memory = new AgentMemory(config.persona || 'default');
+                memory.clearMemory();
+                this.updateMemoryStats();
+                this.updateStatus('Memory cleared');
+            }
+        });
+
+        document.getElementById('close-memory-modal').addEventListener('click', () => {
+            document.getElementById('memory-modal').style.display = 'none';
+        });
+
+        document.getElementById('export-memory').addEventListener('click', () => {
+            this.exportMemory();
+        });
+
+        // AI input handling
         this.aiInput.addEventListener('keydown', (e) => {
             if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();
-                // Will implement in Phase 3
-                console.log('Send message (not yet implemented)');
+                this.sendAIMessage();
             }
         });
 
         document.getElementById('ai-send').addEventListener('click', () => {
-            // Will implement in Phase 3
-            console.log('Send message (not yet implemented)');
+            this.sendAIMessage();
+        });
+
+        // Checkpoint controls
+        document.getElementById('ai-checkpoint').addEventListener('click', () => {
+            this.saveCheckpoint();
+        });
+
+        document.getElementById('ai-restore').addEventListener('click', () => {
+            this.restoreCheckpoint();
         });
     }
 
     openAISettings() {
         this.aiSettingsModal.classList.remove('hidden');
+        
+        // Update memory stats when opening settings
+        this.updateMemoryStats();
+        
         // Focus first input
         setTimeout(() => {
             const firstInput = this.aiSettingsModal.querySelector('input:not([type="checkbox"])');
@@ -266,85 +334,363 @@ class GameEditor {
     }
 
     switchAIProvider(provider) {
-        const anthropicGroup = document.getElementById('anthropic-group');
-        const openaiGroup = document.getElementById('openai-group');
+        console.log('[AI Provider] Switching to:', provider);
+        const anthropicModels = document.getElementById('anthropic-models');
+        const openaiModels = document.getElementById('openai-models');
         
         if (provider === 'anthropic') {
-            anthropicGroup.classList.remove('hidden');
-            openaiGroup.classList.add('hidden');
-        } else {
-            anthropicGroup.classList.add('hidden');
-            openaiGroup.classList.remove('hidden');
+            anthropicModels.classList.remove('hidden');
+            openaiModels.classList.add('hidden');
+            console.log('[AI Provider] ✓ Anthropic models shown');
+        } else if (provider === 'openai') {
+            anthropicModels.classList.add('hidden');
+            openaiModels.classList.remove('hidden');
+            console.log('[AI Provider] ✓ OpenAI models shown');
         }
     }
 
+    quickSwitchModel(value) {
+        console.group('🔄 Quick Model Switch');
+        console.log('[Quick Switch] Selected:', value);
+        
+        const [provider, model] = value.split(':');
+        console.log('[Quick Switch] Provider:', provider);
+        console.log('[Quick Switch] Model:', model);
+        
+        // Get current config
+        const config = JSON.parse(localStorage.getItem('ai_config') || '{}');
+        
+        // Update provider and model
+        config.provider = provider;
+        if (provider === 'anthropic') {
+            config.anthropic_model = model;
+        } else {
+            config.openai_model = model;
+        }
+        
+        // Save to localStorage
+        localStorage.setItem('ai_config', JSON.stringify(config));
+        console.log('[Quick Switch] ✓ Config saved:', config);
+        
+        // Update settings modal to match
+        document.getElementById('ai-provider').value = provider;
+        this.switchAIProvider(provider);
+        if (provider === 'anthropic') {
+            document.getElementById('anthropic-model').value = model;
+        } else {
+            document.getElementById('openai-model').value = model;
+        }
+        
+        // Show notification
+        const modelName = document.getElementById('quick-model-switch').selectedOptions[0].text;
+        this.addMessage('system', `Switched to ${modelName}. This will apply to your next message.`);
+        console.log('[Quick Switch] ✓ Switched to:', modelName);
+        
+        console.groupEnd();
+    }
+
+    quickSwitchPersona(value) {
+        console.group('🎭 Quick Persona Switch');
+        console.log('[Quick Persona] Selected:', value);
+        
+        // Get current config
+        const config = JSON.parse(localStorage.getItem('ai_config') || '{}');
+        const oldPersona = config.persona || 'default';
+        
+        // Update persona
+        config.persona = value;
+        
+        // Save to localStorage
+        localStorage.setItem('ai_config', JSON.stringify(config));
+        console.log('[Quick Persona] ✓ Config saved:', config);
+        
+        // Update settings modal to match
+        document.getElementById('ai-persona').value = value;
+        
+        // Update persona indicator
+        this.updatePersonaIndicator(value);
+        
+        // Update memory stats for new persona
+        this.updateMemoryStats();
+        
+        // Show notification
+        const personaName = document.getElementById('quick-persona-switch').selectedOptions[0].text;
+        this.addMessage('system', `🎭 Switched to ${personaName}. Memory and conversation context are now persona-specific.`);
+        console.log('[Quick Persona] ✓ Switched to:', personaName);
+        
+        console.groupEnd();
+    }
+
     loadAIConfig() {
+        console.group('🔧 AI Configuration Loading');
+        console.time('loadAIConfig');
+        
         try {
+            console.log('[AI Config] Checking localStorage for saved config...');
             const stored = localStorage.getItem('ai_config');
+            
             if (stored) {
+                console.log('[AI Config] Found stored config:', stored);
                 const config = JSON.parse(stored);
+                console.log('[AI Config] Parsed config:', config);
                 
-                // Populate form
+                // Load provider
                 if (config.provider) {
                     document.getElementById('ai-provider').value = config.provider;
                     this.switchAIProvider(config.provider);
-                }
-                if (config.anthropic_key) {
-                    document.getElementById('anthropic-key').value = config.anthropic_key;
-                }
-                if (config.openai_key) {
-                    document.getElementById('openai-key').value = config.openai_key;
-                }
-                if (config.auto_analyze !== undefined) {
-                    document.getElementById('ai-auto-analyze').checked = config.auto_analyze;
+                    console.log('[AI Config] Set provider to:', config.provider);
                 }
                 
-                // Update status if configured
-                if ((config.provider === 'anthropic' && config.anthropic_key) ||
-                    (config.provider === 'openai' && config.openai_key)) {
-                    this.aiStatus.textContent = 'Ready';
-                    this.aiStatus.classList.add('ready');
-                    this.aiInput.disabled = false;
-                    document.getElementById('ai-send').disabled = false;
-                    this.aiInput.placeholder = 'Ask about your level or request changes...';
+                // Load model selections
+                if (config.anthropic_model) {
+                    document.getElementById('anthropic-model').value = config.anthropic_model;
+                    console.log('[AI Config] Set Anthropic model to:', config.anthropic_model);
                 }
+                if (config.openai_model) {
+                    document.getElementById('openai-model').value = config.openai_model;
+                    console.log('[AI Config] Set OpenAI model to:', config.openai_model);
+                }
+                
+                // Load persona
+                if (config.persona) {
+                    document.getElementById('ai-persona').value = config.persona;
+                    console.log('[AI Config] Set persona to:', config.persona);
+                }
+                
+                // Load checkboxes
+                if (config.auto_analyze !== undefined) {
+                    document.getElementById('ai-auto-analyze').checked = config.auto_analyze;
+                    console.log('[AI Config] Set auto_analyze to:', config.auto_analyze);
+                }
+                if (config.enable_images !== undefined) {
+                    document.getElementById('ai-enable-images').checked = config.enable_images;
+                    console.log('[AI Config] Set enable_images to:', config.enable_images);
+                }
+            } else {
+                console.log('[AI Config] No stored config found, using defaults');
             }
+            
+            // AI is always ready (server-side keys)
+            this.aiStatus.textContent = 'Ready';
+            this.aiStatus.classList.add('ready');
+            this.aiInput.disabled = false;
+            document.getElementById('ai-send').disabled = false;
+            this.aiInput.placeholder = 'Ask about your level or request changes...';
+            console.log('[AI Config] ✓ AI Status set to Ready');
+            console.log('[AI Config] ✓ Input enabled, send button enabled');
+            
+            // Show and update quick model switcher
+            const config = JSON.parse(stored || '{}');
+            const provider = config.provider || 'anthropic';
+            const model = provider === 'anthropic' ? 
+                (config.anthropic_model || 'claude-sonnet-4-5') : 
+                (config.openai_model || 'gpt-5.2');
+            
+            const quickSwitch = document.getElementById('quick-model-switch');
+            quickSwitch.value = `${provider}:${model}`;
+            document.getElementById('ai-model-switcher').style.display = 'block';
+            console.log('[AI Config] ✓ Quick switcher set to:', `${provider}:${model}`);
+            
+            // Show and update quick persona switcher
+            const persona = config.persona || 'default';
+            const quickPersonaSwitch = document.getElementById('quick-persona-switch');
+            quickPersonaSwitch.value = persona;
+            document.getElementById('ai-persona-switcher').style.display = 'block';
+            console.log('[AI Config] ✓ Quick persona switcher set to:', persona);
+            
+            // Show keyboard hints
+            const hints = document.getElementById('keyboard-hints');
+            if (hints) hints.style.display = 'flex';
+            
+            // Initialize conversation history
+            this.conversationHistory = [];
+            console.log('[AI Config] ✓ Conversation history initialized (empty array)');
+            
+            console.timeEnd('loadAIConfig');
+            console.log('[AI Config] ✅ Configuration loaded successfully');
+            
         } catch (error) {
-            console.warn('Failed to load AI config:', error);
+            console.error('[AI Config] ❌ Failed to load AI config:', error);
+            console.error('[AI Config] Error stack:', error.stack);
+        } finally {
+            console.groupEnd();
         }
     }
 
     saveAIConfig() {
         const config = {
             provider: document.getElementById('ai-provider').value,
-            anthropic_key: document.getElementById('anthropic-key').value,
-            openai_key: document.getElementById('openai-key').value,
-            auto_analyze: document.getElementById('ai-auto-analyze').checked
+            anthropic_model: document.getElementById('anthropic-model').value,
+            openai_model: document.getElementById('openai-model').value,
+            persona: document.getElementById('ai-persona').value,
+            auto_analyze: document.getElementById('ai-auto-analyze').checked,
+            enable_images: document.getElementById('ai-enable-images').checked
         };
 
         try {
             localStorage.setItem('ai_config', JSON.stringify(config));
+            console.log('[AI Config] Saved:', config);
+            this.updateStatus('AI preferences saved!');
             
-            // Update UI
-            const hasKey = (config.provider === 'anthropic' && config.anthropic_key) ||
-                          (config.provider === 'openai' && config.openai_key);
+            // Update persona indicator when settings saved
+            this.updatePersonaIndicator(config.persona);
             
-            if (hasKey) {
-                this.aiStatus.textContent = 'Ready';
-                this.aiStatus.classList.add('ready');
-                this.aiInput.disabled = false;
-                document.getElementById('ai-send').disabled = false;
-                this.aiInput.placeholder = 'Ask about your level or request changes...';
-                this.updateStatus('AI Assistant configured and ready!');
-            } else {
-                this.aiStatus.textContent = 'Not Configured';
-                this.aiStatus.classList.remove('ready');
-            }
+            // Update memory stats
+            this.updateMemoryStats();
             
             this.closeAISettings();
         } catch (error) {
             alert('Failed to save configuration: ' + error.message);
         }
+    }
+
+    updatePersonaIndicator(persona) {
+        // Update badge
+        const badge = document.getElementById('ai-persona-badge');
+        const personaNameEl = document.getElementById('active-persona-name');
+        
+        if (badge && personaNameEl) {
+            const personaInfo = this.getPersonaInfo(persona);
+            
+            // Update badge content
+            personaNameEl.textContent = personaInfo.name;
+            badge.className = `ai-persona-badge ${personaInfo.category}`;
+            
+            // Update icon
+            const iconEl = badge.querySelector('.persona-icon');
+            if (iconEl) iconEl.textContent = personaInfo.icon;
+            
+            // Show badge
+            badge.style.display = 'flex';
+            
+            console.log('🎭 [Persona Badge] Updated to:', personaInfo.name, personaInfo.category);
+        }
+    }
+    
+    getPersonaInfo(persona) {
+        const personaMap = {
+            'default': { name: 'Default', icon: '👤', category: 'general' },
+            'fellowship': { name: 'Fellowship', icon: '⚔️', category: 'general' },
+            'master-teacher': { name: 'Dr. Sarah', icon: '🎓', category: 'core-council' },
+            'technical-architect': { name: 'Alex', icon: '💻', category: 'core-council' },
+            'strategist': { name: 'Marcus', icon: '📊', category: 'core-council' },
+            'theologian': { name: 'Pastor Jonathan', icon: '✝️', category: 'core-council' },
+            'writer': { name: 'Emma', icon: '✍️', category: 'core-council' },
+            'analyst': { name: 'Dr. Priya', icon: '📈', category: 'core-council' },
+            'debugger': { name: 'Max', icon: '🔧', category: 'core-council' },
+            'classical-educator': { name: 'Prof. Helena', icon: '📚', category: 'specialist' },
+            'gen-alpha-expert': { name: 'Zara', icon: '🎮', category: 'specialist' },
+            'ux-designer': { name: 'Riley', icon: '🎨', category: 'specialist' },
+            'marketing-strategist': { name: 'David', icon: '📣', category: 'specialist' },
+            'game-designer': { name: 'Jordan', icon: '🕹️', category: 'specialist' }
+        };
+        
+        return personaMap[persona] || { name: 'Unknown', icon: '❓', category: 'general' };
+    }
+
+    updateMemoryStats() {
+        const config = JSON.parse(localStorage.getItem('ai_config') || '{}');
+        const persona = config.persona || 'default';
+        const memory = new AgentMemory(persona);
+        const stats = memory.getMemoryStats();
+
+        document.getElementById('memory-count').textContent = stats.interactionCount || 0;
+        
+        const topTopics = stats.topTopics.map(t => t.topic).slice(0, 3).join(', ') || 'None yet';
+        document.getElementById('memory-topics').textContent = topTopics;
+        
+        const firstSeen = stats.firstSeen ? new Date(stats.firstSeen).toLocaleDateString() : 'Never';
+        document.getElementById('memory-since').textContent = firstSeen;
+
+        console.log(`🧠 [Memory Stats] ${stats.interactionCount} conversations, ${stats.topTopics.length} topics`);
+    }
+
+    showMemoryViewer() {
+        const config = JSON.parse(localStorage.getItem('ai_config') || '{}');
+        const persona = config.persona || 'default';
+        const memory = new AgentMemory(persona);
+        const memoryData = memory.exportMemory();
+
+        // Set persona name
+        document.getElementById('memory-persona-name').textContent = persona;
+
+        // Populate short-term memory
+        const shortTermDiv = document.getElementById('memory-short-term');
+        if (memoryData.shortTerm.length === 0) {
+            shortTermDiv.innerHTML = '<p style="color: #888; text-align: center; padding: 20px;">No conversations yet. Start chatting to build memory!</p>';
+        } else {
+            shortTermDiv.innerHTML = memoryData.shortTerm.map(item => {
+                const color = item.role === 'user' ? '#2196F3' : '#4CAF50';
+                const preview = item.content.length > 200 ? item.content.substring(0, 200) + '...' : item.content;
+                return `
+                    <div style="margin: 12px 0; padding: 12px; background: #333; border-radius: 4px; border-left: 3px solid ${color};">
+                        <strong style="color: ${color}; text-transform: capitalize;">${item.role}:</strong>
+                        <p style="margin: 8px 0; white-space: pre-wrap;">${preview}</p>
+                        <small style="color: #888;">${new Date(item.timestamp).toLocaleString()}</small>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // Populate long-term insights
+        const profileList = document.getElementById('memory-profile');
+        if (memoryData.longTerm.userProfile.preferences.length === 0) {
+            profileList.innerHTML = '<li style="color: #888; padding: 8px;">Learning about you...</li>';
+        } else {
+            profileList.innerHTML = memoryData.longTerm.userProfile.preferences.map(p => 
+                `<li style="padding: 4px 0;">✓ ${p}</li>`
+            ).join('');
+        }
+
+        // Populate project context
+        const projectList = document.getElementById('memory-project');
+        const projectItems = [];
+        if (memoryData.longTerm.projectContext.gameType) {
+            projectItems.push(`<li style="padding: 4px 0;"><strong>Type:</strong> ${memoryData.longTerm.projectContext.gameType}</li>`);
+        }
+        if (memoryData.longTerm.projectContext.keyFeatures.length > 0) {
+            projectItems.push(`<li style="padding: 4px 0;"><strong>Features:</strong> ${memoryData.longTerm.projectContext.keyFeatures.join(', ')}</li>`);
+        }
+        if (memoryData.longTerm.projectContext.challenges.length > 0) {
+            projectItems.push(`<li style="padding: 4px 0;"><strong>Challenges:</strong> ${memoryData.longTerm.projectContext.challenges.join(', ')}</li>`);
+        }
+        projectList.innerHTML = projectItems.length > 0 ? projectItems.join('') : '<li style="color: #888; padding: 8px;">No project details yet</li>';
+
+        // Populate topics
+        const topicsList = document.getElementById('memory-topics-list');
+        if (memoryData.longTerm.interactionStats.topTopics.length === 0) {
+            topicsList.innerHTML = '<li style="color: #888; padding: 8px;">No topics tracked yet</li>';
+        } else {
+            topicsList.innerHTML = memoryData.longTerm.interactionStats.topTopics.map(t => 
+                `<li style="padding: 4px 0;">📌 ${t.topic} <span style="color: #888;">(${t.count}x)</span></li>`
+            ).join('');
+        }
+
+        // Show modal
+        document.getElementById('memory-modal').style.display = 'flex';
+        console.log('🧠 [Memory Viewer] Opened with', memoryData.shortTerm.length, 'interactions');
+    }
+
+    exportMemory() {
+        const config = JSON.parse(localStorage.getItem('ai_config') || '{}');
+        const persona = config.persona || 'default';
+        const memory = new AgentMemory(persona);
+        const memoryData = memory.exportMemory();
+
+        const dataStr = JSON.stringify(memoryData, null, 2);
+        const blob = new Blob([dataStr], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `memory-${persona}-${new Date().toISOString().split('T')[0]}.json`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+
+        this.updateStatus('Memory exported!');
+        console.log('🧠 [Memory Export] Saved as', a.download);
     }
 
     clearAIConversation() {
@@ -363,6 +709,71 @@ class GameEditor {
             </div>
         `;
         this.updateStatus('Conversation cleared');
+    }
+    
+    closeAIPanel() {
+        this.aiPanel.classList.add('collapsed');
+        document.getElementById('ai-reopen').style.display = 'block';
+        // Update workspace grid to give more space
+        document.getElementById('workspace').style.gridTemplateColumns = '1fr 320px';
+    }
+    
+    openAIPanel() {
+        this.aiPanel.classList.remove('collapsed');
+        document.getElementById('ai-reopen').style.display = 'none';
+        // Restore AI panel in grid
+        const savedWidth = localStorage.getItem('ai_panel_width') || '450px';
+        document.getElementById('workspace').style.gridTemplateColumns = `1fr 320px ${savedWidth}`;
+    }
+    
+    setupAIPanelResize() {
+        const resizeHandle = document.getElementById('ai-resize-handle');
+        const workspace = document.getElementById('workspace');
+        const aiPanel = this.aiPanel;
+        
+        let isResizing = false;
+        let startX = 0;
+        let startWidth = 0;
+        
+        resizeHandle.addEventListener('mousedown', (e) => {
+            isResizing = true;
+            startX = e.clientX;
+            startWidth = aiPanel.offsetWidth;
+            
+            // Add resizing class for visual feedback
+            aiPanel.style.transition = 'none';
+            document.body.style.cursor = 'ew-resize';
+            document.body.style.userSelect = 'none';
+            
+            e.preventDefault();
+        });
+        
+        document.addEventListener('mousemove', (e) => {
+            if (!isResizing) return;
+            
+            const deltaX = startX - e.clientX; // Inverted because we're dragging from left edge
+            const newWidth = Math.max(350, Math.min(600, startWidth + deltaX));
+            
+            // Update grid template
+            workspace.style.gridTemplateColumns = `1fr 320px ${newWidth}px`;
+            
+            e.preventDefault();
+        });
+        
+        document.addEventListener('mouseup', () => {
+            if (isResizing) {
+                isResizing = false;
+                aiPanel.style.transition = '';
+                document.body.style.cursor = '';
+                document.body.style.userSelect = '';
+                
+                // Save width preference
+                const currentWidth = aiPanel.offsetWidth;
+                localStorage.setItem('ai_panel_width', `${currentWidth}px`);
+                
+                console.log(`📐 AI Panel resized to ${currentWidth}px`);
+            }
+        });
     }
 
     // ========================================================================
@@ -1021,6 +1432,522 @@ class GameEditor {
         if (this.objects.length === 0 && !this.background) {
             this.canvasContainer.classList.remove('has-content');
         }
+    }
+
+    // ========================================================================
+    // AI MESSAGING
+    // ========================================================================
+
+    async sendAIMessage() {
+        console.group('💬 Sending AI Message');
+        console.time('sendAIMessage');
+        
+        const message = this.aiInput.value.trim();
+        console.log('[AI Message] Raw input value:', this.aiInput.value);
+        console.log('[AI Message] Trimmed message:', message);
+        console.log('[AI Message] Message length:', message.length);
+        
+        if (!message) {
+            console.warn('[AI Message] ⚠️ Empty message, aborting send');
+            console.groupEnd();
+            return;
+        }
+
+        // Add user message to chat
+        console.log('[AI Message] Adding user message to chat UI...');
+        this.addMessage('user', message);
+        this.aiInput.value = '';
+        console.log('[AI Message] ✓ User message added, input cleared');
+
+        // Get config for persona
+        const config = JSON.parse(localStorage.getItem('ai_config') || '{}');
+        const persona = config.persona || 'default';
+        
+        // Save user message to memory
+        const memory = new AgentMemory(persona);
+        memory.addInteraction('user', message, {
+            editorState: this.getEditorState(),
+            timestamp: new Date().toISOString()
+        });
+
+        // Show thinking indicator
+        this.aiStatus.textContent = 'Thinking...';
+        this.aiStatus.classList.remove('ready');
+        console.log('[AI Message] ✓ Status changed to "Thinking..."');
+
+        try {
+            // Build request payload
+            const messageHistory = this.buildMessageHistory();
+            const editorState = this.getEditorState();
+            
+            console.log('[AI Message] 📦 Request payload prepared:');
+            console.log('  - Message history length:', messageHistory.length);
+            console.log('  - Message history:', messageHistory);
+            console.log('  - Editor state:', editorState);
+            
+            // Get current AI config
+            const config = JSON.parse(localStorage.getItem('ai_config') || '{}');
+            const provider = config.provider || 'anthropic';
+            const model = provider === 'anthropic' ? 
+                (config.anthropic_model || 'claude-sonnet-4-5') : 
+                (config.openai_model || 'gpt-5.2');
+            const enableImages = config.enable_images !== false; // default true
+            const persona = config.persona || 'default';
+            
+            console.log('[AI Message] Provider:', provider);
+            console.log('[AI Message] Model:', model);
+            console.log('🎭 [AI Message] Active Persona:', persona);
+            console.log('[AI Message] Image generation:', enableImages ? 'enabled' : 'disabled');
+            console.log('='.repeat(60));
+            
+            // Update UI to show active persona
+            this.updatePersonaIndicator(persona);
+            
+            const requestBody = {
+                provider: provider,
+                model: model,
+                messages: messageHistory,
+                editorState: editorState,
+                enableImages: enableImages,
+                persona: persona
+            };
+            
+            console.log('[AI Message] 🌐 Making fetch request to /.netlify/functions/chat');
+            console.log('[AI Message] Request body:', JSON.stringify(requestBody, null, 2));
+            
+            const fetchStartTime = performance.now();
+            
+            const response = await fetch('/.netlify/functions/chat', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(requestBody)
+            });
+            
+            const fetchEndTime = performance.now();
+            const fetchDuration = (fetchEndTime - fetchStartTime).toFixed(2);
+            
+            console.log(`[AI Message] ✓ Fetch completed in ${fetchDuration}ms`);
+            console.log('[AI Message] Response status:', response.status, response.statusText);
+            console.log('[AI Message] Response headers:', Object.fromEntries(response.headers.entries()));
+
+            if (!response.ok) {
+                console.error('[AI Message] ❌ Response not OK:', response.status);
+                const errorText = await response.text();
+                console.error('[AI Message] Error response body (raw):', errorText);
+                
+                let error;
+                try {
+                    error = JSON.parse(errorText);
+                    console.error('[AI Message] Error response body (parsed):', error);
+                } catch (e) {
+                    console.error('[AI Message] Could not parse error as JSON');
+                    error = { error: errorText };
+                }
+                
+                throw new Error(error.error || `HTTP ${response.status}`);
+            }
+
+            const responseText = await response.text();
+            console.log('[AI Message] Response body (raw):', responseText);
+            
+            const data = JSON.parse(responseText);
+            console.log('[AI Message] Response body (parsed):', data);
+            console.log('[AI Message] Response content type:', typeof data);
+            console.log('[AI Message] Response has content array:', Array.isArray(data.content));
+            
+            if (data.content && data.content[0]) {
+                console.log('[AI Message] First content block:', data.content[0]);
+                console.log('[AI Message] Assistant response text length:', data.content[0].text?.length || 0);
+            }
+            
+            // Add assistant response
+            console.log('[AI Message] Adding assistant response to chat UI...');
+            this.addMessage('assistant', data.content[0].text);
+            console.log('[AI Message] ✅ Assistant response added successfully');
+            
+            // Save assistant response to memory
+            memory.addInteraction('assistant', data.content[0].text, {
+                model: model,
+                tokensUsed: data.usage?.output_tokens || 0,
+                timestamp: new Date().toISOString()
+            });
+
+        } catch (error) {
+            console.error('[AI Message] ❌ Request failed with error:', error);
+            console.error('[AI Message] Error type:', error.constructor.name);
+            console.error('[AI Message] Error message:', error.message);
+            console.error('[AI Message] Error stack:', error.stack);
+            
+            this.addMessage('system', `Error: ${error.message}`);
+            console.log('[AI Message] ✓ Error message added to chat UI');
+        } finally {
+            // Restore status
+            this.aiStatus.textContent = 'Ready';
+            this.aiStatus.classList.add('ready');
+            console.log('[AI Message] ✓ Status restored to "Ready"');
+            
+            console.timeEnd('sendAIMessage');
+            console.groupEnd();
+        }
+    }
+
+    addMessage(role, content, isEditable = true) {
+        console.group(`💭 Adding ${role} message`);
+        
+        console.log('[Add Message] Role:', role);
+        console.log('[Add Message] Content length:', content?.length || 0);
+        console.log('[Add Message] Content preview:', content?.substring(0, 100) + (content?.length > 100 ? '...' : ''));
+        console.log('[Add Message] Editable:', isEditable);
+        
+        const messagesContainer = document.getElementById('ai-messages');
+        console.log('[Add Message] Messages container found:', !!messagesContainer);
+        console.log('[Add Message] Current message count:', messagesContainer?.children.length || 0);
+        
+        const messageDiv = document.createElement('div');
+        messageDiv.className = `ai-message ${role}`;
+        console.log('[Add Message] Created message div with class:', messageDiv.className);
+        
+        // Add message header with timestamp
+        const now = new Date();
+        const timeStr = now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+        
+        const headerDiv = document.createElement('div');
+        headerDiv.className = 'ai-message-header';
+        headerDiv.innerHTML = `
+            <span class="ai-message-role">${role === 'user' ? 'You' : (role === 'system' ? 'System' : 'AI')}</span>
+            <span class="ai-message-time">${timeStr}</span>
+        `;
+        messageDiv.appendChild(headerDiv);
+        
+        const contentDiv = document.createElement('div');
+        contentDiv.className = 'message-content';
+        
+        // Parse markdown for assistant messages, plain text for user/system
+        if (role === 'assistant') {
+            contentDiv.innerHTML = this.parseMarkdown(content);
+        } else {
+            contentDiv.textContent = content;
+        }
+        console.log('[Add Message] Created content div');
+        
+        messageDiv.appendChild(contentDiv);
+        
+        // Add edit button for user messages
+        if (role === 'user' && isEditable) {
+            const editBtn = document.createElement('button');
+            editBtn.className = 'message-edit-btn';
+            editBtn.textContent = '✏️';
+            editBtn.title = 'Edit message';
+            editBtn.onclick = () => this.editMessage(messageDiv, contentDiv);
+            messageDiv.appendChild(editBtn);
+            console.log('[Add Message] ✓ Edit button added');
+        }
+        
+        messagesContainer.appendChild(messageDiv);
+        console.log('[Add Message] ✓ Message appended to DOM');
+        
+        // Scroll to bottom
+        const scrollBefore = messagesContainer.scrollTop;
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        const scrollAfter = messagesContainer.scrollTop;
+        console.log('[Add Message] ✓ Scrolled to bottom:', scrollBefore, '→', scrollAfter);
+
+        // Store in conversation history (skip system messages)
+        if (role !== 'system') {
+            this.conversationHistory.push({ role, content });
+            console.log('[Add Message] ✓ Added to conversation history');
+            console.log('[Add Message] Conversation history length:', this.conversationHistory.length);
+        } else {
+            console.log('[Add Message] ℹ️ System message, not added to history');
+        }
+        
+        console.groupEnd();
+    }
+
+    buildMessageHistory() {
+        console.group('📚 Building Message History');
+        
+        console.log('[Message History] Total messages in history:', this.conversationHistory.length);
+        console.log('[Message History] Full history:', this.conversationHistory);
+        
+        // Return last 10 messages to keep context manageable
+        const recentMessages = this.conversationHistory.slice(-10);
+        console.log('[Message History] Returning last 10 messages:', recentMessages.length);
+        console.log('[Message History] Recent messages:', recentMessages);
+        
+        console.groupEnd();
+        return recentMessages;
+    }
+
+    editMessage(messageDiv, contentDiv) {
+        console.group('✏️ Editing Message');
+        
+        const originalText = contentDiv.textContent;
+        console.log('[Edit Message] Original text:', originalText);
+        
+        // Create textarea for editing
+        const textarea = document.createElement('textarea');
+        textarea.className = 'message-edit-textarea';
+        textarea.value = originalText;
+        textarea.rows = Math.max(3, originalText.split('\n').length);
+        
+        // Create button container
+        const btnContainer = document.createElement('div');
+        btnContainer.className = 'message-edit-buttons';
+        
+        const saveBtn = document.createElement('button');
+        saveBtn.textContent = '✓ Save';
+        saveBtn.className = 'btn-primary btn-sm';
+        saveBtn.onclick = () => {
+            const newText = textarea.value.trim();
+            if (!newText) {
+                console.warn('[Edit Message] Empty message, canceling');
+                this.cancelEdit(messageDiv, contentDiv, originalText);
+                return;
+            }
+            
+            console.log('[Edit Message] New text:', newText);
+            contentDiv.textContent = newText;
+            
+            // Update conversation history
+            const messageIndex = Array.from(messageDiv.parentElement.children)
+                .filter(el => el.classList.contains('ai-message'))
+                .filter(el => el.classList.contains('user') || el.classList.contains('assistant'))
+                .indexOf(messageDiv);
+            
+            if (messageIndex !== -1 && messageIndex < this.conversationHistory.length) {
+                this.conversationHistory[messageIndex].content = newText;
+                console.log('[Edit Message] ✓ Updated conversation history at index:', messageIndex);
+            }
+            
+            this.cancelEdit(messageDiv, contentDiv, newText);
+            this.addMessage('system', '✏️ Message edited. Re-send to get a new response with your changes.');
+            console.groupEnd();
+        };
+        
+        const cancelBtn = document.createElement('button');
+        cancelBtn.textContent = '✕ Cancel';
+        cancelBtn.className = 'btn-secondary btn-sm';
+        cancelBtn.onclick = () => {
+            console.log('[Edit Message] Canceled');
+            this.cancelEdit(messageDiv, contentDiv, originalText);
+            console.groupEnd();
+        };
+        
+        btnContainer.appendChild(saveBtn);
+        btnContainer.appendChild(cancelBtn);
+        
+        // Replace content with edit UI
+        contentDiv.style.display = 'none';
+        messageDiv.querySelector('.message-edit-btn').style.display = 'none';
+        messageDiv.appendChild(textarea);
+        messageDiv.appendChild(btnContainer);
+        
+        textarea.focus();
+        textarea.setSelectionRange(textarea.value.length, textarea.value.length);
+        
+        console.log('[Edit Message] ✓ Edit mode activated');
+    }
+    
+    cancelEdit(messageDiv, contentDiv, originalText) {
+        contentDiv.textContent = originalText;
+        contentDiv.style.display = 'block';
+        messageDiv.querySelector('.message-edit-btn').style.display = 'block';
+        
+        const textarea = messageDiv.querySelector('.message-edit-textarea');
+        const buttons = messageDiv.querySelector('.message-edit-buttons');
+        if (textarea) textarea.remove();
+        if (buttons) buttons.remove();
+    }
+    
+    saveCheckpoint() {
+        console.group('💾 Saving Checkpoint');
+        
+        const checkpoint = {
+            conversation: [...this.conversationHistory],
+            timestamp: Date.now(),
+            messageCount: this.conversationHistory.length
+        };
+        
+        localStorage.setItem('ai_checkpoint', JSON.stringify(checkpoint));
+        console.log('[Checkpoint] ✓ Saved:', checkpoint);
+        
+        // Show restore button
+        document.getElementById('ai-restore').style.display = 'inline-block';
+        
+        // Update checkpoint button to show saved state
+        const checkpointBtn = document.getElementById('ai-checkpoint');
+        checkpointBtn.textContent = '✓';
+        setTimeout(() => {
+            checkpointBtn.textContent = '💾';
+        }, 1000);
+        
+        this.addMessage('system', `💾 Checkpoint saved with ${checkpoint.messageCount} messages.`);
+        console.groupEnd();
+    }
+    
+    restoreCheckpoint() {
+        console.group('↩️ Restoring Checkpoint');
+        
+        const stored = localStorage.getItem('ai_checkpoint');
+        if (!stored) {
+            console.warn('[Checkpoint] No checkpoint found');
+            this.addMessage('system', '⚠️ No checkpoint to restore.');
+            console.groupEnd();
+            return;
+        }
+        
+        const checkpoint = JSON.parse(stored);
+        console.log('[Checkpoint] Loading checkpoint:', checkpoint);
+        
+        // Clear current conversation
+        const messagesContainer = document.getElementById('ai-messages');
+        while (messagesContainer.firstChild) {
+            messagesContainer.removeChild(messagesContainer.firstChild);
+        }
+        
+        // Restore conversation history
+        this.conversationHistory = [...checkpoint.conversation];
+        console.log('[Checkpoint] ✓ Restored', checkpoint.messageCount, 'messages');
+        
+        // Rebuild UI
+        checkpoint.conversation.forEach(msg => {
+            this.addMessage(msg.role, msg.content, false);
+        });
+        
+        const timeSince = Math.round((Date.now() - checkpoint.timestamp) / 1000);
+        this.addMessage('system', `↩️ Checkpoint restored (saved ${timeSince}s ago, ${checkpoint.messageCount} messages).`);
+        
+        console.groupEnd();
+    }
+
+    getEditorState() {
+        console.group('🎮 Getting Editor State');
+        console.time('getEditorState');
+        
+        console.log('[Editor State] Canvas dimensions:', this.canvas.width, 'x', this.canvas.height);
+        console.log('[Editor State] Zoom scale:', this.scale);
+        console.log('[Editor State] Pan offset:', { x: this.panX, y: this.panY });
+        console.log('[Editor State] Has background:', !!this.background);
+        
+        if (this.background) {
+            console.log('[Editor State] Background:', {
+                width: this.background.width,
+                height: this.background.height,
+                opacity: this.backgroundOpacity
+            });
+        }
+        
+        console.log('[Editor State] Object count:', this.objects.length);
+        console.log('[Editor State] Selected object:', this.selectedObject ? 'Yes' : 'No');
+        
+        const state = {
+            canvas: {
+                width: this.canvas.width,
+                height: this.canvas.height,
+                scale: this.scale,
+                panX: this.panX,
+                panY: this.panY
+            },
+            background: this.background ? {
+                width: this.background.width,
+                height: this.background.height,
+                opacity: this.backgroundOpacity
+            } : null,
+            objects: this.objects.map((obj, index) => {
+                const objState = {
+                    x: obj.x,
+                    y: obj.y,
+                    width: obj.width,
+                    height: obj.height,
+                    rotation: obj.rotation,
+                    layer: obj.layer,
+                    locked: obj.locked,
+                    name: obj.asset ? obj.asset.name : 'unknown'
+                };
+                console.log(`[Editor State] Object ${index}:`, objState);
+                return objState;
+            }),
+            selectedObject: this.selectedObject ? {
+                x: this.selectedObject.x,
+                y: this.selectedObject.y,
+                width: this.selectedObject.width,
+                height: this.selectedObject.height
+            } : null
+        };
+        
+        console.log('[Editor State] Complete state object:', state);
+        console.log('[Editor State] State JSON size:', JSON.stringify(state).length, 'bytes');
+        
+        console.timeEnd('getEditorState');
+        console.groupEnd();
+        
+        return state;
+    }
+
+    // ========================================================================
+    // MARKDOWN PARSER
+    // ========================================================================
+    
+    parseMarkdown(text) {
+        if (!text) return '';
+        
+        let html = text;
+        
+        // Escape HTML to prevent XSS
+        html = html.replace(/&/g, '&amp;')
+                   .replace(/</g, '&lt;')
+                   .replace(/>/g, '&gt;');
+        
+        // Headers (### Header, ## Header, # Header)
+        html = html.replace(/^### (.+)$/gm, '<h3>$1</h3>');
+        html = html.replace(/^## (.+)$/gm, '<h2>$1</h2>');
+        html = html.replace(/^# (.+)$/gm, '<h1>$1</h1>');
+        
+        // Bold (**text** or __text__)
+        html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+        html = html.replace(/__(.+?)__/g, '<strong>$1</strong>');
+        
+        // Italic (*text* or _text_)
+        html = html.replace(/\*(.+?)\*/g, '<em>$1</em>');
+        html = html.replace(/_(.+?)_/g, '<em>$1</em>');
+        
+        // Code blocks (```code```)
+        html = html.replace(/```(\w*)\n([\s\S]+?)```/g, (match, lang, code) => {
+            return `<pre><code class="language-${lang}">${code.trim()}</code></pre>`;
+        });
+        
+        // Inline code (`code`)
+        html = html.replace(/`(.+?)`/g, '<code>$1</code>');
+        
+        // Links ([text](url))
+        html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank">$1</a>');
+        
+        // Unordered lists (- item or * item)
+        html = html.replace(/^\s*[-*]\s+(.+)$/gm, '<li>$1</li>');
+        html = html.replace(/(<li>.*<\/li>\n?)+/g, '<ul>$&</ul>');
+        
+        // Ordered lists (1. item)
+        html = html.replace(/^\s*\d+\.\s+(.+)$/gm, '<li>$1</li>');
+        
+        // Blockquotes (> text)
+        html = html.replace(/^&gt;\s+(.+)$/gm, '<blockquote>$1</blockquote>');
+        
+        // Horizontal rules (--- or ***)
+        html = html.replace(/^(---|\*\*\*)$/gm, '<hr>');
+        
+        // Line breaks (double newline = paragraph)
+        html = html.split('\n\n').map(para => {
+            if (para.trim() && !para.startsWith('<')) {
+                return `<p>${para.trim()}</p>`;
+            }
+            return para;
+        }).join('\n');
+        
+        // Single line breaks
+        html = html.replace(/\n/g, '<br>');
+        
+        return html;
     }
 }
 

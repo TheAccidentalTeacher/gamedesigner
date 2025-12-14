@@ -26,3 +26,6 @@ API_KEYS_PRIVATE.md
 # Build output (if you add build tools later)
 dist/
 build/
+
+# Local Netlify folder
+.netlify
