@@ -132,6 +132,68 @@ class MultiAgentClient {
       }
     };
   }
+
+  /**
+   * Execute a conversation between agents
+   * 
+   * @param {string} question - The question to discuss
+   * @param {string[]} selectedPersonas - Array of persona names to use
+   * @param {object[]} conversationHistory - Previous messages in conversation
+   * @param {string} userInterjection - Optional user message to add
+   * @param {string} expandOnPersona - Optional persona to expand on their idea
+   * @returns {Promise<object>} Response with conversation history and suggested actions
+   */
+  async executeConversation(question, selectedPersonas = [], conversationHistory = [], userInterjection = null, expandOnPersona = null, options = {}) {
+    try {
+      const { provider = 'anthropic', model, roundLimit = 3 } = options;
+      
+      console.log(`%c🎙️  Conversation API Call`, 'color: #00FF00; font-weight: bold');
+      console.log(`   ❓ Question: ${question.substring(0, 60)}...`);
+      console.log(`   👥 Personas: ${selectedPersonas.length}`);
+      console.log(`   💬 History: ${conversationHistory.length} messages`);
+      if (userInterjection) console.log(`   👤 User input: "${userInterjection.substring(0, 50)}..."`);
+      if (expandOnPersona) console.log(`   🔍 Expand on: ${expandOnPersona}`);
+      
+      const payload = {
+        question,
+        selectedPersonas,
+        conversationHistory,
+        userInterjection,
+        expandOnPersona,
+        roundLimit,
+        provider,
+        ...(model && { model })
+      };
+
+      const response = await fetch(`${this.apiBaseUrl}/conversation`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(payload)
+      });
+
+      if (!response.ok) {
+        throw new Error(`API returned ${response.status}: ${response.statusText}`);
+      }
+
+      const result = await response.json();
+
+      if (!result.success) {
+        throw new Error(result.error || 'Conversation failed');
+      }
+
+      console.log(`%c✅ Conversation API Success`, 'color: #00FF00; font-weight: bold');
+      console.log(`   📊 Total messages: ${result.data.conversationHistory.length}`);
+      console.log(`   🆕 New messages: ${result.data.lastMessages.length}`);
+      console.log(`   🔄 Round: ${result.data.roundCount}`);
+
+      return result.data;
+    } catch (error) {
+      console.error(`%c❌ Conversation API Error: ${error.message}`, 'color: #FF0000; font-weight: bold');
+      throw error;
+    }
+  }
 }
 
 // Export for ES6 modules

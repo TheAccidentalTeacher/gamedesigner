@@ -229,6 +229,17 @@ class MultiAgentUIController {
       log('ERROR', 'Execute button not found!');
     }
 
+    // Conversation start button
+    const conversationBtn = document.getElementById('modal-start-conversation');
+    if (conversationBtn) {
+      log('DEBUG', 'Conversation button found');
+      conversationBtn.addEventListener('click', () => {
+        log('EVENT', '🎙️  CLICKED Start Conversation Button');
+        this.startConversation();
+      });
+      log('SUCCESS', 'Attached listener to conversation button');
+    }
+
     // Select All / Clear All buttons (works for both modal and sidebar)
     const selectAllBtn = document.getElementById('modal-select-all') || document.querySelector('.persona-select-all');
     const clearAllBtn = document.getElementById('modal-clear-all') || document.querySelector('.persona-clear-all');
@@ -255,13 +266,25 @@ class MultiAgentUIController {
   selectMode(mode) {
     log('INFO', `🧭 selectMode() called with mode: "${mode}"`);
     
-    if (!['panel', 'consensus', 'debate'].includes(mode)) {
-      log('ERROR', `Invalid mode "${mode}". Must be one of: panel, consensus, debate`);
+    if (!['panel', 'consensus', 'debate', 'conversation'].includes(mode)) {
+      log('ERROR', `Invalid mode "${mode}". Must be one of: panel, consensus, debate, conversation`);
       return;
     }
 
     this.currentMode = mode;
     log('DEBUG', `Current mode set to: ${mode}`);
+    
+    // Show/hide appropriate execute button
+    const workflowBtn = document.getElementById('modal-execute-workflow');
+    const conversationBtn = document.getElementById('modal-start-conversation');
+    
+    if (mode === 'conversation') {
+      if (workflowBtn) workflowBtn.style.display = 'none';
+      if (conversationBtn) conversationBtn.style.display = 'block';
+    } else {
+      if (workflowBtn) workflowBtn.style.display = 'block';
+      if (conversationBtn) conversationBtn.style.display = 'none';
+    }
     
     // Update button states
     const modeBtns = document.querySelectorAll('.mode-btn');
@@ -709,6 +732,296 @@ class MultiAgentUIController {
     }
     
     log('SUCCESS', '✅ Preference loading complete');
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // CONVERSATION MODE METHODS
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  async startConversation() {
+    log('EVENT', '🎙️  Starting conversation mode');
+    
+    const question = document.querySelector('.question-input')?.value?.trim();
+    if (!question) {
+      alert('Please enter a question to start conversation');
+      return;
+    }
+
+    this.setLoading(true);
+    this.showLoadingState();
+
+    try {
+      log('API', '📡 Initiating conversation...');
+      
+      // Get provider and model from localStorage
+      let provider = 'anthropic';
+      let model = undefined;
+      try {
+        const aiConfig = JSON.parse(localStorage.getItem('aiConfig') || '{}');
+        if (aiConfig.provider) provider = aiConfig.provider;
+        if (aiConfig.anthropic_model && provider === 'anthropic') model = aiConfig.anthropic_model;
+        if (aiConfig.openai_model && provider === 'openai') model = aiConfig.openai_model;
+      } catch (e) {
+        log('DEBUG', `Could not parse AI config: ${e.message}`);
+      }
+
+      const result = await this.client.executeConversation(
+        question,
+        this.selectedPersonas.length > 0 ? this.selectedPersonas : [],
+        [],  // Empty conversation history (start fresh)
+        null,  // No user interjection yet
+        null,  // Don't expand on anyone yet
+        { provider, model, roundLimit: 2 }
+      );
+
+      log('SUCCESS', '✅ Conversation initiated');
+      this.displayConversation(result);
+      
+    } catch (error) {
+      log('ERROR', `Conversation failed: ${error.message}`);
+      alert(`Conversation failed: ${error.message}`);
+    } finally {
+      this.setLoading(false);
+    }
+  }
+
+  displayConversation(conversationData) {
+    log('UI', '💬 Displaying conversation');
+    
+    const resultsContainer = document.querySelector('.multi-agent-results');
+    if (!resultsContainer) {
+      log('ERROR', 'Results container not found');
+      return;
+    }
+
+    const html = this.formatConversation(conversationData);
+    resultsContainer.innerHTML = html;
+    
+    // Setup user input area for interjections
+    this.setupConversationInput(conversationData);
+    
+    log('SUCCESS', '✅ Conversation displayed');
+  }
+
+  formatConversation(data) {
+    const { conversationHistory = [] } = data;
+
+    if (conversationHistory.length === 0) {
+      return '<p>No messages yet</p>';
+    }
+
+    const messagesHTML = conversationHistory.map(msg => {
+      const isUser = msg.speaker === 'You';
+      const classes = `conversation-message ${isUser ? 'user-message' : 'agent-message'}`;
+      
+      return `
+        <div class="${classes}">
+          <div class="message-header">
+            <span class="speaker-icon">${msg.icon || '👤'}</span>
+            <span class="speaker-name">${msg.speaker}</span>
+            <span class="message-type-badge">${msg.responseType || 'standard'}</span>
+          </div>
+          <div class="message-content">
+            ${this.formatMarkdown(msg.message)}
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    return `
+      <div class="conversation-thread">
+        <div class="messages">
+          ${messagesHTML}
+        </div>
+        <div class="conversation-actions">
+          <div id="conversation-input-area" class="conversation-input-wrapper">
+            <!-- Will be populated by setupConversationInput -->
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  setupConversationInput(conversationData) {
+    log('UI', '⌨️  Setting up conversation input');
+    
+    const inputArea = document.getElementById('conversation-input-area');
+    if (!inputArea) {
+      log('ERROR', 'Conversation input area not found');
+      return;
+    }
+
+    const lastMessage = conversationData.conversationHistory?.[conversationData.conversationHistory.length - 1];
+    const suggestedActions = conversationData.nextSuggestedActions || [];
+
+    let html = `
+      <div class="user-input-section">
+        <input 
+          type="text" 
+          id="user-interjection-input" 
+          placeholder="Jump into the conversation or say something..."
+          class="conversation-input"
+          maxlength="500"
+        >
+        <button id="send-interjection-btn" class="btn-primary">Send</button>
+        <button id="continue-conversation-btn" class="btn-secondary">Continue Conversation</button>
+      </div>
+      
+      <div class="suggested-actions">
+        <p>Suggested actions:</p>
+    `;
+
+    suggestedActions.forEach(action => {
+      html += `
+        <button class="action-btn" data-action="${action.type}" title="${action.description}">
+          ${action.label}
+        </button>
+      `;
+    });
+
+    html += `</div>`;
+
+    inputArea.innerHTML = html;
+
+    // Wire up buttons
+    const sendBtn = document.getElementById('send-interjection-btn');
+    const continueBtn = document.getElementById('continue-conversation-btn');
+    const input = document.getElementById('user-interjection-input');
+
+    if (sendBtn) {
+      sendBtn.addEventListener('click', () => {
+        const message = input.value.trim();
+        if (message) {
+          log('EVENT', '💬 User interjection sent');
+          this.continueConversationWithInput(conversationData, message);
+          input.value = '';
+        }
+      });
+    }
+
+    if (continueBtn) {
+      continueBtn.addEventListener('click', () => {
+        log('EVENT', '▶️  Continue conversation');
+        this.continueConversationWithInput(conversationData, null);
+      });
+    }
+
+    // Wire up suggested action buttons
+    document.querySelectorAll('.action-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const action = btn.dataset.action;
+        log('EVENT', `🎯 Action clicked: ${action}`);
+        this.handleConversationAction(action, conversationData);
+      });
+    });
+
+    log('SUCCESS', '✅ Conversation input ready');
+  }
+
+  async continueConversationWithInput(conversationData, userMessage) {
+    log('EVENT', `🎙️  Continuing conversation${userMessage ? ` with input: "${userMessage}"` : ''}`);
+    
+    this.setLoading(true);
+    this.showLoadingState();
+
+    try {
+      let provider = 'anthropic';
+      let model = undefined;
+      try {
+        const aiConfig = JSON.parse(localStorage.getItem('aiConfig') || '{}');
+        if (aiConfig.provider) provider = aiConfig.provider;
+        if (aiConfig.anthropic_model && provider === 'anthropic') model = aiConfig.anthropic_model;
+        if (aiConfig.openai_model && provider === 'openai') model = aiConfig.openai_model;
+      } catch (e) {
+        log('DEBUG', `Could not parse AI config: ${e.message}`);
+      }
+
+      const question = document.querySelector('.question-input')?.value?.trim() || '';
+
+      const result = await this.client.executeConversation(
+        question,
+        this.selectedPersonas.length > 0 ? this.selectedPersonas : [],
+        conversationData.conversationHistory || [],  // Continue with history
+        userMessage || null,  // User input if any
+        null,  // Don't expand yet
+        { provider, model, roundLimit: 2 }
+      );
+
+      log('SUCCESS', '✅ Conversation continued');
+      this.displayConversation(result);
+      
+    } catch (error) {
+      log('ERROR', `Conversation continuation failed: ${error.message}`);
+      alert(`Failed to continue conversation: ${error.message}`);
+    } finally {
+      this.setLoading(false);
+    }
+  }
+
+  handleConversationAction(action, conversationData) {
+    log('EVENT', `🎯 Handling action: ${action}`);
+    
+    switch(action) {
+      case 'expand':
+        const lastMessage = conversationData.conversationHistory?.[conversationData.conversationHistory.length - 1];
+        if (lastMessage?.speakerId) {
+          log('INFO', `Expanding on ${lastMessage.speaker}`);
+          this.continueConversationWithExpansion(conversationData, lastMessage.speakerId);
+        }
+        break;
+      case 'next':
+        this.continueConversationWithInput(conversationData, null);
+        break;
+      case 'steer':
+        const direction = prompt('What direction should we take the conversation?');
+        if (direction) {
+          this.continueConversationWithInput(conversationData, `Let's focus on: ${direction}`);
+        }
+        break;
+      case 'summarize':
+        log('INFO', 'Summarize requested (to be implemented)');
+        break;
+    }
+  }
+
+  async continueConversationWithExpansion(conversationData, personaId) {
+    log('EVENT', `📖 Expanding on ${personaId}`);
+    
+    this.setLoading(true);
+    this.showLoadingState();
+
+    try {
+      let provider = 'anthropic';
+      let model = undefined;
+      try {
+        const aiConfig = JSON.parse(localStorage.getItem('aiConfig') || '{}');
+        if (aiConfig.provider) provider = aiConfig.provider;
+        if (aiConfig.anthropic_model && provider === 'anthropic') model = aiConfig.anthropic_model;
+        if (aiConfig.openai_model && provider === 'openai') model = aiConfig.openai_model;
+      } catch (e) {
+        log('DEBUG', `Could not parse AI config: ${e.message}`);
+      }
+
+      const question = document.querySelector('.question-input')?.value?.trim() || '';
+
+      const result = await this.client.executeConversation(
+        question,
+        this.selectedPersonas.length > 0 ? this.selectedPersonas : [],
+        conversationData.conversationHistory || [],
+        null,
+        personaId,  // Tell API to expand on this persona
+        { provider, model, roundLimit: 1 }
+      );
+
+      log('SUCCESS', '✅ Expansion generated');
+      this.displayConversation(result);
+      
+    } catch (error) {
+      log('ERROR', `Expansion failed: ${error.message}`);
+      alert(`Failed to expand: ${error.message}`);
+    } finally {
+      this.setLoading(false);
+    }
   }
 }
 
