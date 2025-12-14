@@ -442,6 +442,38 @@
                         });
                         console.log('%c[SUCCESS] Manual listener attached to hide button', 'color: #00FF00; font-weight: bold');
                     }
+                    
+                    // Fallback for Select All button
+                    const selectAllBtn = document.querySelector('.persona-select-all');
+                    if (selectAllBtn) {
+                        selectAllBtn.addEventListener('click', (e) => {
+                            console.log('%c[FALLBACK] Select All button clicked!', 'color: #0088FF; font-weight: bold');
+                            const checkboxes = document.querySelectorAll('input[type="checkbox"][name="persona"]');
+                            console.log(`  Found ${checkboxes.length} persona checkboxes`);
+                            checkboxes.forEach((cb, i) => {
+                                cb.checked = true;
+                                console.log(`  ✓ Checked: ${cb.value}`);
+                            });
+                            console.log('%c[SUCCESS] All personas selected', 'color: #00FF00; font-weight: bold');
+                        });
+                        console.log('%c[SUCCESS] Manual listener attached to Select All button', 'color: #00FF00; font-weight: bold');
+                    }
+                    
+                    // Fallback for Clear All button
+                    const clearAllBtn = document.querySelector('.persona-clear-all');
+                    if (clearAllBtn) {
+                        clearAllBtn.addEventListener('click', (e) => {
+                            console.log('%c[FALLBACK] Clear All button clicked!', 'color: #0088FF; font-weight: bold');
+                            const checkboxes = document.querySelectorAll('input[type="checkbox"][name="persona"]');
+                            console.log(`  Found ${checkboxes.length} persona checkboxes`);
+                            checkboxes.forEach((cb, i) => {
+                                cb.checked = false;
+                                console.log(`  ✗ Unchecked: ${cb.value}`);
+                            });
+                            console.log('%c[SUCCESS] All personas cleared', 'color: #00FF00; font-weight: bold');
+                        });
+                        console.log('%c[SUCCESS] Manual listener attached to Clear All button', 'color: #00FF00; font-weight: bold');
+                    }
                 }
             }, 500);
         });

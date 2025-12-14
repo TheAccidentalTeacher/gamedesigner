@@ -334,7 +334,6 @@ class MultiAgentUIController {
       } else {
         charCountEl.classList.remove('warning');
       }
-    }
       charCountEl.textContent = `${text.length} / 2000`;
     }
     
