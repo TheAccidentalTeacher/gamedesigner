@@ -2638,3 +2638,225 @@ button:active {
 .content-text::-webkit-scrollbar-thumb:hover {
     background: #5BA0F2;
 }
+/* ============================================================================
+   MULTI-AGENT ANALYSIS SECTION
+   ============================================================================ */
+
+.analysis-section {
+    background: #2d2d2d;
+    border: 1px solid #4A90E2;
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 24px;
+}
+
+.analysis-section.error {
+    border-color: #d32f2f;
+}
+
+.analysis-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding-bottom: 12px;
+    border-bottom: 2px solid #4A90E2;
+}
+
+.analysis-header h4 {
+    margin: 0;
+    color: #4A90E2;
+    font-size: 18px;
+    font-weight: 600;
+}
+
+.analysis-meta {
+    display: flex;
+    gap: 16px;
+    font-size: 13px;
+    color: #888;
+}
+
+.analysis-meta span {
+    background: #252526;
+    padding: 4px 10px;
+    border-radius: 4px;
+    border: 1px solid #3c3c3c;
+}
+
+.analysis-error {
+    color: #f48771;
+    padding: 16px;
+    background: rgba(211, 47, 47, 0.1);
+    border-radius: 4px;
+    font-size: 14px;
+}
+
+/* Synthesis (Executive Summary) */
+.analysis-synthesis {
+    background: #252526;
+    border: 2px solid #4A90E2;
+    border-radius: 6px;
+    margin-bottom: 20px;
+}
+
+.synthesis-summary {
+    padding: 16px 20px;
+    cursor: pointer;
+    user-select: none;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 16px;
+    font-weight: 600;
+    color: #4A90E2;
+    background: linear-gradient(135deg, #1e1e1e 0%, #252526 100%);
+    border-radius: 4px;
+    transition: all 0.2s ease;
+}
+
+.synthesis-summary:hover {
+    background: linear-gradient(135deg, #252526 0%, #2d2d2d 100%);
+    transform: translateX(2px);
+}
+
+.synthesis-summary::marker {
+    display: none;
+}
+
+.synthesis-icon {
+    font-size: 20px;
+}
+
+.synthesis-title {
+    flex: 1;
+}
+
+.synthesis-content {
+    padding: 24px;
+    background: #1e1e1e;
+    border-top: 1px solid #3c3c3c;
+    line-height: 1.8;
+    font-size: 14px;
+}
+
+/* Individual Analyses */
+.analysis-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.analysis-item {
+    background: #252526;
+    border: 1px solid #3c3c3c;
+    border-radius: 6px;
+    overflow: hidden;
+}
+
+.analysis-item[open] {
+    border-color: #4A90E2;
+}
+
+.analysis-summary {
+    padding: 14px 18px;
+    cursor: pointer;
+    user-select: none;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 14px;
+    font-weight: 500;
+    color: #ddd;
+    background: #2d2d2d;
+    transition: all 0.2s ease;
+}
+
+.analysis-summary:hover {
+    background: #333;
+    transform: translateX(2px);
+}
+
+.analysis-summary::marker {
+    display: none;
+}
+
+.analysis-icon {
+    font-size: 18px;
+    width: 28px;
+    text-align: center;
+}
+
+.analysis-name {
+    font-weight: 600;
+    color: #fff;
+}
+
+.analysis-focus {
+    color: #888;
+    font-size: 13px;
+    font-weight: 400;
+    margin-left: auto;
+}
+
+.analysis-content {
+    padding: 20px;
+    background: #1e1e1e;
+    border-top: 1px solid #3c3c3c;
+    line-height: 1.8;
+    font-size: 14px;
+}
+
+/* Markdown rendering in analysis */
+.analysis-content h3,
+.synthesis-content h3 {
+    color: #4A90E2;
+    font-size: 18px;
+    margin: 24px 0 12px 0;
+    padding-bottom: 8px;
+    border-bottom: 1px solid #3c3c3c;
+}
+
+.analysis-content h4,
+.synthesis-content h4 {
+    color: #5BA0F2;
+    font-size: 16px;
+    margin: 20px 0 10px 0;
+}
+
+.analysis-content h5,
+.synthesis-content h5 {
+    color: #6BB0FF;
+    font-size: 14px;
+    margin: 16px 0 8px 0;
+}
+
+.analysis-content p,
+.synthesis-content p {
+    margin: 12px 0;
+    color: #ccc;
+}
+
+.analysis-content ul,
+.synthesis-content ul {
+    margin: 12px 0;
+    padding-left: 24px;
+}
+
+.analysis-content li,
+.synthesis-content li {
+    margin: 6px 0;
+    color: #ccc;
+}
+
+.analysis-content strong,
+.synthesis-content strong {
+    color: #fff;
+    font-weight: 600;
+}
+
+.analysis-content em,
+.synthesis-content em {
+    color: #aaa;
+    font-style: italic;
+}

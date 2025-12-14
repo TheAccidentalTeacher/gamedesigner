@@ -1070,7 +1070,9 @@ class MultiAgentUIController {
       const result = await this.client.research(query, {
         maxResults: 10,
         extractContent: true,  // Enable content extraction
-        maxExtract: 5          // Extract top 5 results
+        maxExtract: 5,         // Extract top 5 results
+        analyze: true,         // Enable multi-agent analysis
+        selectedPersonas: null // Use all personas (or pass array to select specific ones)
       });
       const apiTime = performance.now() - startAPITime;
       
@@ -1104,9 +1106,10 @@ class MultiAgentUIController {
       return;
     }
 
-    const { results, stats, query, extractedContent = [], chunks = [] } = result;
+    const { results, stats, query, extractedContent = [], chunks = [], analysis = null } = result;
 
     const hasExtractedContent = extractedContent.some(e => !e.error);
+    const hasAnalysis = analysis && !analysis.error;
 
     let html = `
       <div class="research-results">
@@ -1119,9 +1122,11 @@ class MultiAgentUIController {
             <span>🔗 ${stats.totalSources} sources (${stats.afterDeduplication} unique)</span>
             ${hasExtractedContent ? `<span>📄 ${stats.extractedCount} extracted</span>` : ''}
             ${chunks.length > 0 ? `<span>📚 ${chunks.length} chunks</span>` : ''}
+            ${hasAnalysis ? `<span>🤖 ${analysis.metadata.successfulAnalyses} analyses</span>` : ''}
           </div>
         </div>
         
+        ${hasAnalysis ? this.renderAnalysis(analysis) : ''}
         ${hasExtractedContent ? this.renderExtractedContent(extractedContent) : ''}
         
         <div class="research-results-list">
@@ -1207,6 +1212,120 @@ class MultiAgentUIController {
       </div>
     `;
 
+    return html;
+  }
+
+  /**
+   * Render multi-agent analysis section
+   */
+  renderAnalysis(analysis) {
+    if (!analysis || analysis.error) {
+      return `
+        <div class="analysis-section error">
+          <h4>🤖 Multi-Agent Analysis</h4>
+          <div class="analysis-error">
+            ❌ Analysis failed: ${analysis?.error || 'Unknown error'}
+          </div>
+        </div>
+      `;
+    }
+
+    const { analyses = [], synthesis, metadata } = analysis;
+    const successful = analyses.filter(a => !a.error);
+
+    let html = `
+      <div class="analysis-section">
+        <div class="analysis-header">
+          <h4>🤖 Expert Analysis (${successful.length} Perspectives)</h4>
+          <div class="analysis-meta">
+            <span>⏱️ ${metadata.analysisDuration}ms</span>
+            <span>🎯 ${metadata.successfulAnalyses}/${metadata.personaCount} agents</span>
+          </div>
+        </div>
+    `;
+
+    // Render synthesis first (executive summary)
+    if (synthesis && synthesis.report) {
+      html += `
+        <details class="analysis-synthesis" open>
+          <summary class="synthesis-summary">
+            <span class="synthesis-icon">📋</span>
+            <span class="synthesis-title">Executive Summary & Synthesis</span>
+          </summary>
+          <div class="synthesis-content">
+            ${this.renderMarkdown(synthesis.report)}
+          </div>
+        </details>
+      `;
+    }
+
+    // Render individual analyses
+    html += `<div class="analysis-list">`;
+    
+    successful.forEach((item, index) => {
+      html += `
+        <details class="analysis-item">
+          <summary class="analysis-summary">
+            <span class="analysis-icon">${this.getPersonaIcon(item.persona)}</span>
+            <span class="analysis-name">${this.escapeHtml(item.name)}</span>
+            <span class="analysis-focus">${this.escapeHtml(item.focus)}</span>
+          </summary>
+          <div class="analysis-content">
+            ${this.renderMarkdown(item.analysis)}
+          </div>
+        </details>
+      `;
+    });
+
+    html += `
+        </div>
+      </div>
+    `;
+
+    return html;
+  }
+
+  /**
+   * Get persona icon
+   */
+  getPersonaIcon(personaId) {
+    return this.personas[personaId]?.icon || '👤';
+  }
+
+  /**
+   * Render markdown to HTML (basic)
+   */
+  renderMarkdown(text) {
+    if (!text) return '';
+    
+    let html = this.escapeHtml(text);
+    
+    // Headers
+    html = html.replace(/^### (.*?)$/gm, '<h5>$1</h5>');
+    html = html.replace(/^## (.*?)$/gm, '<h4>$1</h4>');
+    html = html.replace(/^# (.*?)$/gm, '<h3>$1</h3>');
+    
+    // Bold
+    html = html.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+    
+    // Italic
+    html = html.replace(/\*(.*?)\*/g, '<em>$1</em>');
+    
+    // Lists
+    html = html.replace(/^- (.*?)$/gm, '<li>$1</li>');
+    html = html.replace(/(<li>.*<\/li>\n?)+/g, '<ul>$&</ul>');
+    
+    // Paragraphs
+    html = html.replace(/\n\n/g, '</p><p>');
+    html = '<p>' + html + '</p>';
+    
+    // Clean up empty paragraphs
+    html = html.replace(/<p><\/p>/g, '');
+    html = html.replace(/<p>\s*<h/g, '<h');
+    html = html.replace(/<\/h([3-5])>\s*<\/p>/g, '</h$1>');
+    html = html.replace(/<p>\s*<ul>/g, '<ul>');
+    html = html.replace(/<\/ul>\s*<\/p>/g, '</ul>');
+    
     return html;
   }
 }

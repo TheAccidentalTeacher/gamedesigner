@@ -11,6 +11,7 @@
 const { SearchOrchestrator } = require('../../research/search-orchestrator.cjs');
 const { ContentExtractor } = require('../../research/content-extractor.cjs');
 const { ContentChunker } = require('../../research/content-chunker.cjs');
+const ResearchAnalyzer = require('../../research/research-analyzer.cjs');
 
 exports.handler = async (event, context) => {
   // Set CORS headers
@@ -47,7 +48,9 @@ exports.handler = async (event, context) => {
     const { 
       maxResults = 10, 
       extractContent = false,
-      maxExtract = 5 
+      maxExtract = 5,
+      analyze = false,
+      selectedPersonas = null
     } = options;
 
     // Validate query
@@ -62,7 +65,7 @@ exports.handler = async (event, context) => {
     }
 
     console.log(`[Research API] Query: "${query}"`);
-    console.log(`[Research API] Options:`, { maxResults, extractContent, maxExtract });
+    console.log(`[Research API] Options:`, { maxResults, extractContent, maxExtract, analyze });
 
     // Initialize search orchestrator
     const orchestrator = new SearchOrchestrator({
@@ -133,6 +136,43 @@ exports.handler = async (event, context) => {
 
     const totalDuration = Date.now() - startTime;
 
+    // Analyze content if requested and we have chunks
+    let analysis = null;
+    let analysisDuration = 0;
+
+    if (analyze && chunks.length > 0) {
+      console.log(`[Research API] Starting multi-agent analysis...`);
+      
+      const analysisStartTime = Date.now();
+      
+      // Get Claude API key
+      const claudeApiKey = process.env.ANTHROPIC_API_KEY;
+      if (!claudeApiKey) {
+        console.warn('[Research API] ANTHROPIC_API_KEY not configured - skipping analysis');
+      } else {
+        try {
+          const analyzer = new ResearchAnalyzer(claudeApiKey);
+          analysis = await analyzer.analyze(
+            query, 
+            extractedContent.filter(e => !e.error),
+            chunks,
+            selectedPersonas
+          );
+          
+          analysisDuration = Date.now() - analysisStartTime;
+          console.log(`[Research API] Analysis completed in ${analysisDuration}ms`);
+        } catch (error) {
+          console.error('[Research API] Analysis failed:', error);
+          analysis = {
+            error: error.message,
+            timestamp: new Date().toISOString()
+          };
+        }
+      }
+    }
+
+    const overallDuration = Date.now() - startTime;
+
     // Return results
     return {
       statusCode: 200,
@@ -143,12 +183,14 @@ exports.handler = async (event, context) => {
         results: searchResults.results,
         extractedContent,
         chunks,
+        analysis,
         stats: {
           ...searchResults.stats,
           apiStats: stats,
           searchDuration,
           extractDuration,
-          totalDuration,
+          analysisDuration,
+          totalDuration: overallDuration,
           extractedCount: extractedContent.filter(e => !e.error).length,
           chunkCount: chunks.length
         },
