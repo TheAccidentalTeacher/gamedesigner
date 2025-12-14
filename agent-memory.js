@@ -370,16 +370,18 @@ class AgentMemory {
     }
 }
 
-// Export for ES6 modules
-export default AgentMemory;
-export { AgentMemory };
-
-// Export for browser global scope (when loaded as regular script)
+// Make available globally in browser (for script tag loading in HTML)
 if (typeof window !== 'undefined') {
     window.AgentMemory = AgentMemory;
 }
 
-// Also support CommonJS export if needed
+// Export for ES6 modules
+export default AgentMemory;
+export { AgentMemory };
+
+// Export for CommonJS (Node.js/server-side)
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = AgentMemory;
+    module.exports.default = AgentMemory;
+    module.exports.AgentMemory = AgentMemory;
 }

@@ -395,7 +395,12 @@
         </div>
     </div>
 
-    <script src="agent-memory.js"></script>
+    <!-- Agent Memory Module (loaded as module for ES6 compatibility) -->
+    <script type="module">
+        import { AgentMemory } from './agent-memory.js';
+        window.AgentMemory = AgentMemory;
+    </script>
+    
     <script src="editor.js"></script>
     <script type="module" src="multi-agent-ui.js"></script>
     
