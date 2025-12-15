@@ -24,6 +24,64 @@
                 <button id="save-project" title="Save project file (Ctrl+S)">📁 Save Project</button>
                 <button id="load-project" title="Load project file (Ctrl+O)">📂 Load Project</button>
                 <button id="clear-all" title="Clear everything">🗑️ Clear All</button>
+                
+                <!-- Authentication UI -->
+                <div id="auth-container" style="margin-left: auto; display: flex; align-items: center; gap: 10px;">
+                    <!-- Sync Status Indicator -->
+                    <div id="sync-status" style="display: none; font-size: 12px; color: #888;">
+                        <span id="sync-icon">💾</span>
+                        <span id="sync-text">Synced</span>
+                    </div>
+                    
+                    <!-- Sign In Button (shown when not authenticated) -->
+                    <button id="sign-in-btn" style="display: none;">
+                        🔓 Sign In
+                    </button>
+                    
+                    <!-- User Profile (shown when authenticated) -->
+                    <div id="user-profile" style="display: none; position: relative;">
+                        <button id="profile-btn" style="display: flex; align-items: center; gap: 8px;">
+                            <img id="user-avatar" src="" alt="" style="width: 24px; height: 24px; border-radius: 50%;">
+                            <span id="user-email"></span>
+                            <span>▼</span>
+                        </button>
+                        
+                        <!-- Profile Dropdown -->
+                        <div id="profile-dropdown" style="display: none; position: absolute; right: 0; top: 100%; margin-top: 5px; background: #2a2a2a; border: 1px solid #444; border-radius: 4px; padding: 8px; min-width: 200px; z-index: 1000;">
+                            <div style="padding: 8px; border-bottom: 1px solid #444; margin-bottom: 8px;">
+                                <div style="font-size: 12px; color: #888;">Signed in as</div>
+                                <div id="profile-email" style="font-size: 14px; font-weight: bold;"></div>
+                            </div>
+                            <button id="sign-out-btn" style="width: 100%; text-align: left; padding: 8px; background: none; border: none; color: #ff6b6b; cursor: pointer;">
+                                🚪 Sign Out
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Auth Modal (for OAuth providers) -->
+        <div id="auth-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 10000; align-items: center; justify-content: center;">
+            <div style="background: #1e1e1e; padding: 30px; border-radius: 8px; max-width: 400px; width: 90%;">
+                <h2 style="margin-top: 0;">Sign In to Sync</h2>
+                <p style="color: #888; font-size: 14px; margin-bottom: 20px;">
+                    Sign in to enable cloud sync across all your devices
+                </p>
+                
+                <button id="google-sign-in" style="width: 100%; margin-bottom: 10px; padding: 12px; background: #4285f4; border: none; border-radius: 4px; cursor: pointer; font-size: 16px;">
+                    <img src="https://www.google.com/favicon.ico" style="width: 16px; height: 16px; vertical-align: middle; margin-right: 8px;">
+                    Continue with Google
+                </button>
+                
+                <button id="github-sign-in" style="width: 100%; padding: 12px; background: #333; border: none; border-radius: 4px; cursor: pointer; font-size: 16px;">
+                    <img src="https://github.com/favicon.ico" style="width: 16px; height: 16px; vertical-align: middle; margin-right: 8px;">
+                    Continue with GitHub
+                </button>
+                
+                <button id="cancel-auth" style="width: 100%; margin-top: 15px; padding: 8px; background: none; border: 1px solid #444; border-radius: 4px; cursor: pointer; color: #888;">
+                    Cancel
+                </button>
             </div>
         </div>
 
@@ -614,5 +672,8 @@
             </div>
         </div>
     </div>
+    
+    <!-- Auth UI Script -->
+    <script type="module" src="auth-ui.js"></script>
 </body>
 </html>
