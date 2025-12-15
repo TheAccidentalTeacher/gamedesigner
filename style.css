@@ -3002,3 +3002,309 @@ button:active {
     transform: translateY(-1px);
     box-shadow: 0 2px 4px rgba(0,0,0,0.2);
 }
+
+/* ============================================================================
+   RESEARCH MEMORY & EXPORT (Phase 6 Week 7-8)
+   ============================================================================ */
+
+.research-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 20px;
+    padding-bottom: 16px;
+    border-bottom: 2px solid #3c3c3c;
+}
+
+.research-header-left {
+    flex: 1;
+}
+
+.research-header-actions {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.btn-save-research,
+.btn-export-markdown,
+.btn-export-json,
+.btn-view-history {
+    padding: 8px 16px;
+    font-size: 13px;
+    border: 1px solid #4A90E2;
+    background: rgba(74, 144, 226, 0.1);
+    color: #4A90E2;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+}
+
+.btn-save-research:hover,
+.btn-export-markdown:hover,
+.btn-export-json:hover,
+.btn-view-history:hover {
+    background: rgba(74, 144, 226, 0.2);
+    border-color: #5BA0F2;
+    transform: translateY(-1px);
+}
+
+.btn-save-research:active,
+.btn-export-markdown:active,
+.btn-export-json:active,
+.btn-view-history:active {
+    transform: translateY(0);
+}
+
+/* Modal Overlay */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.85);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10000;
+    animation: fadeIn 0.2s ease-out;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+/* Research History Modal */
+.research-history-modal {
+    background: #252526;
+    border: 2px solid #4A90E2;
+    border-radius: 8px;
+    width: 90%;
+    max-width: 800px;
+    max-height: 80vh;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+    animation: slideUp 0.3s ease-out;
+}
+
+@keyframes slideUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.research-history-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px;
+    border-bottom: 2px solid #3c3c3c;
+}
+
+.research-history-header h3 {
+    margin: 0;
+    color: #fff;
+    font-size: 20px;
+}
+
+.storage-info {
+    font-size: 13px;
+    color: #888;
+}
+
+.btn-close-history {
+    background: transparent;
+    border: none;
+    color: #888;
+    font-size: 20px;
+    cursor: pointer;
+    padding: 4px 8px;
+    transition: color 0.2s;
+}
+
+.btn-close-history:hover {
+    color: #fff;
+}
+
+.research-history-list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.research-history-list::-webkit-scrollbar {
+    width: 10px;
+}
+
+.research-history-list::-webkit-scrollbar-track {
+    background: #1e1e1e;
+}
+
+.research-history-list::-webkit-scrollbar-thumb {
+    background: #4A90E2;
+    border-radius: 5px;
+}
+
+.research-history-list::-webkit-scrollbar-thumb:hover {
+    background: #5BA0F2;
+}
+
+.no-history {
+    text-align: center;
+    padding: 60px 20px;
+    color: #888;
+    font-size: 16px;
+}
+
+.history-item {
+    background: #2d2d2d;
+    border: 1px solid #3c3c3c;
+    border-radius: 6px;
+    padding: 16px;
+    transition: all 0.2s;
+    cursor: pointer;
+}
+
+.history-item:hover {
+    border-color: #4A90E2;
+    background: #333;
+    transform: translateX(4px);
+}
+
+.history-item-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 12px;
+}
+
+.history-query {
+    flex: 1;
+    color: #fff;
+    font-size: 15px;
+    font-weight: 500;
+    margin-right: 12px;
+}
+
+.history-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.btn-load-session,
+.btn-delete-session {
+    padding: 6px 12px;
+    font-size: 12px;
+    border: 1px solid #4A90E2;
+    background: rgba(74, 144, 226, 0.1);
+    color: #4A90E2;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+}
+
+.btn-load-session:hover {
+    background: rgba(74, 144, 226, 0.25);
+    border-color: #5BA0F2;
+}
+
+.btn-delete-session {
+    border-color: #E24A4A;
+    color: #E24A4A;
+    background: rgba(226, 74, 74, 0.1);
+}
+
+.btn-delete-session:hover {
+    background: rgba(226, 74, 74, 0.25);
+    border-color: #F25B5B;
+}
+
+.history-meta {
+    display: flex;
+    gap: 16px;
+    font-size: 12px;
+    color: #888;
+}
+
+.history-meta span {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.research-history-footer {
+    padding: 16px 20px;
+    border-top: 2px solid #3c3c3c;
+    display: flex;
+    justify-content: center;
+}
+
+.btn-clear-history {
+    padding: 10px 20px;
+    font-size: 14px;
+    border: 1px solid #E24A4A;
+    background: rgba(226, 74, 74, 0.1);
+    color: #E24A4A;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-clear-history:hover {
+    background: rgba(226, 74, 74, 0.25);
+    border-color: #F25B5B;
+    transform: translateY(-1px);
+}
+
+/* Notification Toast */
+.notification-toast {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    padding: 16px 24px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+    z-index: 10001;
+    opacity: 0;
+    transform: translateX(400px);
+    transition: all 0.3s ease-out;
+}
+
+.notification-toast.show {
+    opacity: 1;
+    transform: translateX(0);
+}
+
+.notification-success {
+    background: #4CAF50;
+    color: #fff;
+    border: 1px solid #45a049;
+}
+
+.notification-error {
+    background: #E24A4A;
+    color: #fff;
+    border: 1px solid #d43f3f;
+}
+
+.notification-info {
+    background: #4A90E2;
+    color: #fff;
+    border: 1px solid #3a7bc8;
+}
+

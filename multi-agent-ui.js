@@ -8,9 +8,12 @@
  * - Question input area
  * - Results display with synthesis and individual responses
  * - Loading states and animations
+ * - Research Memory (save/load sessions) - Phase 6 Week 7-8
+ * - Export (Markdown/JSON) - Phase 6 Week 7-8
  */
 
 import MultiAgentClient from './multi-agent-client.js';
+import { ResearchMemory } from './research-memory.js';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // ENHANCED LOGGING SYSTEM
@@ -53,10 +56,12 @@ class MultiAgentUIController {
   constructor() {
     log('INFO', '🤖 Multi-Agent UI Controller constructor called');
     this.client = new MultiAgentClient();
+    this.memory = new ResearchMemory(); // Phase 6 Week 7-8
     this.currentMode = 'panel';
     this.selectedPersonas = [];
     this.isLoading = false;
     this.currentResult = null;
+    this.currentSessionId = null; // Track current loaded session
     this.debugMode = true;
     
     // Persona metadata
@@ -1193,16 +1198,32 @@ class MultiAgentUIController {
     let html = `
       <div class="research-results">
         <div class="research-header">
-          <h3>🔍 Research Results</h3>
-          <div class="research-query">"${this.escapeHtml(query)}"</div>
-          <div class="research-stats">
-            <span>📊 ${results.length} results</span>
-            <span>⏱️ ${stats.totalDuration}ms</span>
-            <span>🔗 ${stats.totalSources} sources (${stats.afterDeduplication} unique)</span>
-            ${hasExtractedContent ? `<span>📄 ${stats.extractedCount} extracted</span>` : ''}
-            ${chunks.length > 0 ? `<span>📚 ${chunks.length} chunks</span>` : ''}
-            ${hasAnalysis ? `<span>🤖 ${analysis.metadata.successfulAnalyses} analyses</span>` : ''}
+          <div class="research-header-left">
+            <h3>🔍 Research Results</h3>
+            <div class="research-query">"${this.escapeHtml(query)}"</div>
           </div>
+          <div class="research-header-actions">
+            <button class="btn-save-research" title="Save this research session">
+              💾 Save
+            </button>
+            <button class="btn-export-markdown" title="Export as Markdown">
+              📄 Markdown
+            </button>
+            <button class="btn-export-json" title="Export as JSON">
+              📋 JSON
+            </button>
+            <button class="btn-view-history" title="View research history">
+              📚 History
+            </button>
+          </div>
+        </div>
+        <div class="research-stats">
+          <span>📊 ${results.length} results</span>
+          <span>⏱️ ${stats.totalDuration}ms</span>
+          <span>🔗 ${stats.totalSources} sources (${stats.afterDeduplication} unique)</span>
+          ${hasExtractedContent ? `<span>📄 ${stats.extractedCount} extracted</span>` : ''}
+          ${chunks.length > 0 ? `<span>📚 ${chunks.length} chunks</span>` : ''}
+          ${hasAnalysis ? `<span>🤖 ${analysis.metadata.successfulAnalyses} analyses</span>` : ''}
         </div>
         
         ${hasAnalysis ? this.renderAnalysis(analysis) : ''}
@@ -1239,7 +1260,305 @@ class MultiAgentUIController {
     `;
 
     resultsContainer.innerHTML = html;
+    
+    // Add event listeners for action buttons (Phase 6 Week 7-8)
+    this.attachResearchActionListeners(result);
+    
     log('SUCCESS', '✅ Research results rendered');
+  }
+
+  /**
+   * Attach event listeners to research action buttons (Phase 6 Week 7-8)
+   */
+  attachResearchActionListeners(result) {
+    const saveBtn = document.querySelector('.btn-save-research');
+    const markdownBtn = document.querySelector('.btn-export-markdown');
+    const jsonBtn = document.querySelector('.btn-export-json');
+    const historyBtn = document.querySelector('.btn-view-history');
+
+    if (saveBtn) {
+      saveBtn.addEventListener('click', () => this.saveResearch(result));
+    }
+    if (markdownBtn) {
+      markdownBtn.addEventListener('click', () => this.exportMarkdown(result));
+    }
+    if (jsonBtn) {
+      jsonBtn.addEventListener('click', () => this.exportJSON(result));
+    }
+    if (historyBtn) {
+      historyBtn.addEventListener('click', () => this.showResearchHistory());
+    }
+  }
+
+  /**
+   * Save current research session (Phase 6 Week 7-8)
+   */
+  saveResearch(result) {
+    try {
+      log('INFO', '💾 Saving research session...');
+      
+      const sessionId = this.memory.save({
+        query: result.query,
+        personas: this.selectedPersonas.length > 0 ? this.selectedPersonas : ['all'],
+        results: result.results,
+        extractedContent: result.extractedContent || [],
+        chunks: result.chunks || [],
+        analysis: result.analysis,
+        metadata: result.stats
+      });
+
+      this.currentSessionId = sessionId;
+      
+      log('SUCCESS', `✅ Research saved: ${sessionId}`);
+      this.showNotification('💾 Research session saved!', 'success');
+      
+    } catch (error) {
+      log('ERROR', '❌ Error saving research:', error);
+      this.showNotification('❌ Failed to save research', 'error');
+    }
+  }
+
+  /**
+   * Export research as Markdown (Phase 6 Week 7-8)
+   */
+  exportMarkdown(result) {
+    try {
+      log('INFO', '📄 Exporting as Markdown...');
+      
+      // Create temporary session for export
+      const session = {
+        query: result.query,
+        timestamp: new Date().toISOString(),
+        personas: this.selectedPersonas.length > 0 ? this.selectedPersonas : ['all'],
+        results: result.results,
+        extractedContent: result.extractedContent || [],
+        analysis: result.analysis
+      };
+
+      const markdown = this.memory.exportMarkdown(session);
+      
+      // Download as file
+      this.downloadFile(markdown, `research_${Date.now()}.md`, 'text/markdown');
+      
+      log('SUCCESS', '✅ Markdown exported');
+      this.showNotification('📄 Markdown exported!', 'success');
+      
+    } catch (error) {
+      log('ERROR', '❌ Error exporting Markdown:', error);
+      this.showNotification('❌ Failed to export Markdown', 'error');
+    }
+  }
+
+  /**
+   * Export research as JSON (Phase 6 Week 7-8)
+   */
+  exportJSON(result) {
+    try {
+      log('INFO', '📋 Exporting as JSON...');
+      
+      // Create session object
+      const session = {
+        query: result.query,
+        timestamp: new Date().toISOString(),
+        personas: this.selectedPersonas.length > 0 ? this.selectedPersonas : ['all'],
+        results: result.results,
+        extractedContent: result.extractedContent || [],
+        chunks: result.chunks || [],
+        analysis: result.analysis,
+        metadata: result.stats
+      };
+
+      const json = this.memory.exportJSON(session);
+      
+      // Download as file
+      this.downloadFile(json, `research_${Date.now()}.json`, 'application/json');
+      
+      log('SUCCESS', '✅ JSON exported');
+      this.showNotification('📋 JSON exported!', 'success');
+      
+    } catch (error) {
+      log('ERROR', '❌ Error exporting JSON:', error);
+      this.showNotification('❌ Failed to export JSON', 'error');
+    }
+  }
+
+  /**
+   * Download file helper (Phase 6 Week 7-8)
+   */
+  downloadFile(content, filename, mimeType) {
+    const blob = new Blob([content], { type: mimeType });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+
+  /**
+   * Show research history modal (Phase 6 Week 7-8)
+   */
+  showResearchHistory() {
+    log('INFO', '📚 Showing research history...');
+    
+    const sessions = this.memory.getRecent(20);
+    const storageInfo = this.memory.getStorageSize();
+    
+    let html = `
+      <div class="research-history-modal">
+        <div class="research-history-header">
+          <h3>📚 Research History</h3>
+          <div class="storage-info">
+            💾 Storage: ${storageInfo.formatted} (${sessions.length} sessions)
+          </div>
+          <button class="btn-close-history">✖️</button>
+        </div>
+        <div class="research-history-list">
+    `;
+
+    if (sessions.length === 0) {
+      html += '<div class="no-history">No saved research sessions yet.</div>';
+    } else {
+      sessions.forEach(session => {
+        const date = new Date(session.timestamp);
+        const dateStr = date.toLocaleDateString();
+        const timeStr = date.toLocaleTimeString();
+        
+        html += `
+          <div class="history-item" data-session-id="${session.id}">
+            <div class="history-item-header">
+              <div class="history-query">${this.escapeHtml(session.query)}</div>
+              <div class="history-actions">
+                <button class="btn-load-session" data-session-id="${session.id}" title="Load this session">
+                  📂 Load
+                </button>
+                <button class="btn-delete-session" data-session-id="${session.id}" title="Delete this session">
+                  🗑️
+                </button>
+              </div>
+            </div>
+            <div class="history-meta">
+              <span>📅 ${dateStr} ${timeStr}</span>
+              <span>📊 ${session.metadata.resultCount} results</span>
+              ${session.metadata.analysisCount > 0 ? `<span>🤖 ${session.metadata.analysisCount} analyses</span>` : ''}
+              <span>⏱️ ${(session.metadata.duration / 1000).toFixed(1)}s</span>
+            </div>
+          </div>
+        `;
+      });
+    }
+
+    html += `
+        </div>
+        <div class="research-history-footer">
+          <button class="btn-clear-history">🗑️ Clear All History</button>
+        </div>
+      </div>
+    `;
+
+    // Create modal overlay
+    const overlay = document.createElement('div');
+    overlay.className = 'modal-overlay';
+    overlay.innerHTML = html;
+    document.body.appendChild(overlay);
+
+    // Add event listeners
+    overlay.querySelector('.btn-close-history').addEventListener('click', () => {
+      document.body.removeChild(overlay);
+    });
+
+    overlay.querySelector('.btn-clear-history').addEventListener('click', () => {
+      if (confirm('Are you sure you want to clear all research history?')) {
+        this.memory.clear();
+        document.body.removeChild(overlay);
+        this.showNotification('🗑️ History cleared', 'success');
+      }
+    });
+
+    overlay.querySelectorAll('.btn-load-session').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const sessionId = btn.dataset.sessionId;
+        this.loadResearchSession(sessionId);
+        document.body.removeChild(overlay);
+      });
+    });
+
+    overlay.querySelectorAll('.btn-delete-session').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const sessionId = btn.dataset.sessionId;
+        if (confirm('Delete this research session?')) {
+          this.memory.delete(sessionId);
+          // Remove from DOM
+          const item = overlay.querySelector(`.history-item[data-session-id="${sessionId}"]`);
+          item.remove();
+          this.showNotification('🗑️ Session deleted', 'success');
+        }
+      });
+    });
+
+    // Close on overlay click
+    overlay.addEventListener('click', (e) => {
+      if (e.target === overlay) {
+        document.body.removeChild(overlay);
+      }
+    });
+  }
+
+  /**
+   * Load a saved research session (Phase 6 Week 7-8)
+   */
+  loadResearchSession(sessionId) {
+    try {
+      log('INFO', `📂 Loading research session: ${sessionId}`);
+      
+      const session = this.memory.load(sessionId);
+      if (!session) {
+        this.showNotification('❌ Session not found', 'error');
+        return;
+      }
+
+      // Restore the research results
+      const result = {
+        query: session.query,
+        results: session.results,
+        extractedContent: session.extractedContent,
+        chunks: session.chunks,
+        analysis: session.analysis,
+        stats: session.metadata
+      };
+
+      this.currentSessionId = sessionId;
+      this.displayResearchResults(result);
+      
+      log('SUCCESS', `✅ Session loaded: ${sessionId}`);
+      this.showNotification('📂 Session loaded!', 'success');
+      
+    } catch (error) {
+      log('ERROR', '❌ Error loading session:', error);
+      this.showNotification('❌ Failed to load session', 'error');
+    }
+  }
+
+  /**
+   * Show notification toast (Phase 6 Week 7-8)
+   */
+  showNotification(message, type = 'info') {
+    const toast = document.createElement('div');
+    toast.className = `notification-toast notification-${type}`;
+    toast.textContent = message;
+    document.body.appendChild(toast);
+
+    // Animate in
+    setTimeout(() => toast.classList.add('show'), 10);
+
+    // Remove after 3 seconds
+    setTimeout(() => {
+      toast.classList.remove('show');
+      setTimeout(() => document.body.removeChild(toast), 300);
+    }, 3000);
   }
 
   /**
