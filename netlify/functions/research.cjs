@@ -65,7 +65,7 @@ exports.handler = async (event, context) => {
     }
 
     console.log(`[Research API] Query: "${query}"`);
-    console.log(`[Research API] Options:`, { maxResults, extractContent, maxExtract, analyze });
+    console.log(`[Research API] Options:`, { maxResults, extractContent, maxExtract, analyze, selectedPersonas });
 
     // Initialize search orchestrator
     const orchestrator = new SearchOrchestrator({

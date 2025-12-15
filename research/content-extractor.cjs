@@ -73,6 +73,31 @@ class ContentExtractor {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
 
+      // Check content type - only process HTML
+      const contentType = response.headers.get('content-type') || '';
+      
+      // Reject PDFs, images, videos, and other binary formats
+      if (contentType.includes('application/pdf') ||
+          contentType.includes('image/') ||
+          contentType.includes('video/') ||
+          contentType.includes('audio/') ||
+          contentType.includes('application/zip') ||
+          contentType.includes('application/octet-stream')) {
+        throw new Error(`Unsupported content type: ${contentType}. Cannot extract text from binary files.`);
+      }
+
+      // Also check URL extension as fallback
+      const urlLower = url.toLowerCase();
+      if (urlLower.endsWith('.pdf') || 
+          urlLower.endsWith('.zip') || 
+          urlLower.endsWith('.doc') || 
+          urlLower.endsWith('.docx') ||
+          urlLower.endsWith('.xls') ||
+          urlLower.endsWith('.xlsx') ||
+          urlLower.match(/\.(jpg|jpeg|png|gif|bmp|svg|mp4|mp3|avi|mov)$/)) {
+        throw new Error(`Unsupported file type detected from URL extension. Cannot extract from ${url.split('/').pop()}`);
+      }
+
       const html = await response.text();
       return html;
 

@@ -1111,8 +1111,8 @@ class MultiAgentUIController {
         elapsed += 1;
         if (elapsed < 10) stage = '🔍 Searching multiple sources...';
         else if (elapsed < 30) stage = '📄 Extracting content from articles...';
-        else if (elapsed < 60) stage = `🤖 Starting ${personaCount}-persona analysis (parallel)...`;
-        else if (elapsed < 150) stage = '💭 Expert analyses in progress (1-3 min)...';
+        else if (elapsed < 60) stage = `🤖 Starting ${personaCount}-persona analysis (sequential)...`;
+        else if (elapsed < 150) stage = `💭 Expert ${Math.min(Math.ceil(elapsed / 15), personaCount)}/${personaCount} analyzing... (rate-limited)`;
         else if (elapsed < 200) stage = '✍️ Synthesizing all perspectives...';
         else stage = '⏳ Almost done, finalizing report...';
         updateProgress();

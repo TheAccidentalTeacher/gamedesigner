@@ -83,58 +83,93 @@ class ResearchAnalyzer {
     console.log(`[ResearchAnalyzer] Starting analysis for query: "${query}"`);
     console.log(`[ResearchAnalyzer] Extracted content: ${extractedContent.length} sources`);
     console.log(`[ResearchAnalyzer] Chunks: ${chunks.length}`);
+    console.log(`[ResearchAnalyzer] selectedPersonas parameter:`, selectedPersonas);
     
     // Use all personas if none selected, otherwise use selected ones
     const personasToUse = selectedPersonas || Object.keys(this.analysisRoles);
     console.log(`[ResearchAnalyzer] Analyzing with ${personasToUse.length} personas`);
+    if (selectedPersonas && selectedPersonas.length > 0) {
+      console.log(`[ResearchAnalyzer] Using selected personas: ${selectedPersonas.join(', ')}`);
+    } else {
+      console.log(`[ResearchAnalyzer] Using all 12 personas (none selected)`);
+    }
 
     const startTime = Date.now();
 
     // Prepare content summary for analysis
     const contentSummary = this.prepareContentSummary(extractedContent, chunks);
 
-    // Analyze with ALL personas IN PARALLEL (much faster!)
-    console.log(`[ResearchAnalyzer] Starting ${personasToUse.length} analyses in parallel...`);
+    // Run analyses SEQUENTIALLY with delays to avoid rate limits
+    // Parallel execution can hit 450k tokens/min limit with large content
+    console.log(`[ResearchAnalyzer] Starting ${personasToUse.length} analyses sequentially (rate limit safety)...`);
     
-    const analysisPromises = personasToUse.map(async (personaId) => {
+    const analyses = [];
+    let successCount = 0;
+    let failCount = 0;
+
+    for (let i = 0; i < personasToUse.length; i++) {
+      const personaId = personasToUse[i];
       const role = this.analysisRoles[personaId];
+      
       if (!role) {
         console.warn(`[ResearchAnalyzer] Unknown persona: ${personaId}`);
-        return null;
+        continue;
       }
 
       try {
-        console.log(`[ResearchAnalyzer] 🔄 ${role.name} starting...`);
+        console.log(`[ResearchAnalyzer] 🔄 [${i + 1}/${personasToUse.length}] ${role.name} starting...`);
         const analysis = await this.analyzeWithPersona(query, contentSummary, personaId);
-        console.log(`[ResearchAnalyzer] ✓ ${role.name} complete`);
-        return {
+        console.log(`[ResearchAnalyzer] ✓ [${i + 1}/${personasToUse.length}] ${role.name} complete`);
+        
+        analyses.push({
           persona: personaId,
           name: role.name,
           focus: role.focus,
           analysis: analysis,
           timestamp: new Date().toISOString()
-        };
+        });
+        
+        successCount++;
+        
+        // Add 1.5 second delay between requests to stay under rate limits
+        if (i < personasToUse.length - 1) {
+          console.log(`[ResearchAnalyzer] ⏳ Waiting 1.5s before next request...`);
+          await new Promise(resolve => setTimeout(resolve, 1500));
+        }
+        
       } catch (error) {
-        console.error(`[ResearchAnalyzer] ✗ ${role.name} failed:`, error.message);
-        return {
+        console.error(`[ResearchAnalyzer] ✗ [${i + 1}/${personasToUse.length}] ${role.name} failed:`, error.message);
+        
+        // If it's a rate limit error, wait longer
+        if (error.message.includes('rate_limit') || error.message.includes('429')) {
+          console.log(`[ResearchAnalyzer] 🛑 Rate limit hit, waiting 5 seconds...`);
+          await new Promise(resolve => setTimeout(resolve, 5000));
+        }
+        
+        analyses.push({
           persona: personaId,
           name: role.name,
           focus: role.focus,
           error: error.message,
           timestamp: new Date().toISOString()
-        };
+        });
+        
+        failCount++;
       }
-    });
-
-    // Wait for all analyses to complete
-    const analysisResults = await Promise.all(analysisPromises);
-    const analyses = analysisResults.filter(a => a !== null);
+    }
 
     const analysisDuration = Date.now() - startTime;
-    console.log(`[ResearchAnalyzer] ✅ All ${analyses.length} analyses complete in ${analysisDuration}ms`);
+    console.log(`[ResearchAnalyzer] ✅ All ${analyses.length} analyses complete in ${analysisDuration}ms (${successCount} succeeded, ${failCount} failed)`);
 
-    // Synthesize all analyses
-    const synthesis = await this.synthesizeAnalyses(query, analyses, contentSummary);
+    // Only synthesize if we have at least one successful analysis
+    let synthesis = null;
+    if (successCount > 0) {
+      console.log(`[ResearchAnalyzer] Synthesizing ${successCount} successful analyses...`);
+      synthesis = await this.synthesizeAnalyses(query, analyses, contentSummary);
+    } else {
+      console.warn(`[ResearchAnalyzer] No successful analyses to synthesize`);
+      synthesis = "# Analysis Failed\n\nAll analyses failed due to rate limits or errors. Please try again with fewer personas or wait a moment before retrying.";
+    }
 
     return {
       query,
@@ -143,6 +178,8 @@ class ResearchAnalyzer {
       metadata: {
         analysisDuration,
         personaCount: personasToUse.length,
+        successfulAnalyses: successCount,
+        failedAnalyses: failCount,
         successfulAnalyses: analyses.filter(a => !a.error).length,
         timestamp: new Date().toISOString()
       }
@@ -166,29 +203,26 @@ class ResearchAnalyzer {
       }));
 
     // CRITICAL: Claude has 200K token limit, system prompt + user prompt + response must fit
-    // Safe approach: Use only 100K tokens for content (~400K chars, but we'll be conservative)
-    // Strategy: Sample chunks intelligently rather than just truncating
+    // ALSO: 450K tokens/min rate limit means sequential execution is safer
+    // Strategy: Use LESS content per analysis to stay well under limits
     
     let fullContent = '';
-    const maxContentChars = 300000; // ~75K tokens for content (leaving room for prompts)
+    const maxContentChars = 150000; // ~37.5K tokens for content (more conservative for rate limits)
     
-    if (chunks.length <= 10) {
-      // Few chunks: use them all
+    if (chunks.length <= 6) {
+      // Very few chunks: use them all
       fullContent = chunks.map(chunk => chunk.content).join('\n\n---\n\n');
     } else {
-      // Many chunks: sample strategically
-      // Take first 3, last 3, and evenly spaced middle samples
+      // Many chunks: sample more aggressively (only 6 chunks total)
       const sampled = [];
-      sampled.push(...chunks.slice(0, 3)); // Beginning
+      sampled.push(...chunks.slice(0, 2)); // Beginning (2 chunks)
       
-      if (chunks.length > 10) {
-        const middleStart = Math.floor(chunks.length / 3);
-        const middleEnd = Math.floor(2 * chunks.length / 3);
-        sampled.push(...chunks.slice(middleStart, middleStart + 3)); // Middle
-        sampled.push(...chunks.slice(middleEnd, middleEnd + 3)); // Late middle
+      if (chunks.length > 6) {
+        const middleIdx = Math.floor(chunks.length / 2);
+        sampled.push(...chunks.slice(middleIdx, middleIdx + 2)); // Middle (2 chunks)
       }
       
-      sampled.push(...chunks.slice(-3)); // End
+      sampled.push(...chunks.slice(-2)); // End (2 chunks)
       
       fullContent = sampled.map((chunk, idx) => {
         const chunkNum = chunks.indexOf(chunk) + 1;

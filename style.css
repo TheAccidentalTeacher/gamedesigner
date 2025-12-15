@@ -1669,18 +1669,6 @@ button:active {
     cursor: not-allowed;
 }
 
-/* Results Display */
-.multi-agent-results {
-    min-height: 200px;
-    max-height: 600px;
-    display: flex;
-    flex-direction: column;
-    gap: 20px;
-    overflow-y: auto;
-    overflow-x: hidden;
-    padding-right: 8px;
-}
-
 /* Synthesis Section */
 .synthesis-section {
     background: linear-gradient(135deg, #2d4a7b 0%, #1e3a5f 100%);
@@ -2034,7 +2022,8 @@ button:active {
     flex-direction: column;
     gap: 16px;
     padding: 20px;
-    overflow: hidden;
+    min-height: 0;
+    overflow: hidden; /* contain scrolling inside children */
 }
 
 .multi-agent-modal .multi-agent-mode-selector {
@@ -2078,7 +2067,7 @@ button:active {
     gap: 16px;
     flex: 1;
     min-height: 0;
-    overflow: hidden;
+    height: 100%;
 }
 
 .modal-left {
@@ -2092,7 +2081,8 @@ button:active {
     display: flex;
     flex-direction: column;
     gap: 12px;
-    overflow: hidden;
+    min-height: 0;
+    /* Removed overflow: hidden - it was preventing child scrolling */
 }
 
 .modal-left .multi-agent-persona-selector {
@@ -2106,10 +2096,13 @@ button:active {
 }
 
 .modal-right .multi-agent-results {
-    flex: 1;
-    max-height: none;
-    overflow-y: auto;
-    padding-right: 8px;
+    flex: 1 1 auto;
+    height: calc(100vh - 320px);
+    max-height: calc(100vh - 260px);
+    min-height: 200px;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    padding-right: 12px;
 }
 
 /* Responsive Modal */
@@ -2312,16 +2305,25 @@ button:active {
     flex-direction: column;
     gap: 16px;
     height: 100%;
-    overflow: hidden;
+    overflow-y: auto; /* CRITICAL FIX: Allow scrolling of research output */
+    overflow-x: hidden;
 }
 
-.research-header {
-    padding: 16px;
-    background: #2d2d2d;
-    border-radius: 4px;
-    border-left: 4px solid #4A90E2;
+.research-results::-webkit-scrollbar {
+    width: 12px;
 }
 
+.research-results::-webkit-scrollbar-track {
+    background: #1e1e1e;
+}
+
+.research-results::-webkit-scrollbar-thumb {
+    background: #4A90E2;
+    border-radius: 6px;
+}
+
+.research-results::-webkit-scrollbar-thumb:hover {
+    background: #5BA0F2;
 .research-header h3 {
     margin: 0 0 8px 0;
     color: #fff;
@@ -2353,26 +2355,25 @@ button:active {
     display: flex;
     flex-direction: column;
     gap: 12px;
-    overflow-y: auto;
-    flex: 1 1 auto;
-    min-height: 300px;
+    flex: 0 1 auto; /* Don't force expansion, let natural size work */
+    max-height: none; /* Allow natural height */
 }
 
 .research-results-list::-webkit-scrollbar {
-    width: 8px;
+    /* Removed individual scrollbars - research-results handles all scrolling */
+    display: none;
 }
 
 .research-results-list::-webkit-scrollbar-track {
-    background: #1e1e1e;
+    /* Removed - not needed */
 }
 
 .research-results-list::-webkit-scrollbar-thumb {
-    background: #4A90E2;
-    border-radius: 4px;
+    /* Removed - not needed */
 }
 
 .research-results-list::-webkit-scrollbar-thumb:hover {
-    background: #5BA0F2;
+    /* Removed - not needed */
 }
 
 .research-result-item {
@@ -2465,26 +2466,26 @@ button:active {
     background: #2d2d30;
     border-radius: 6px;
     border: 1px solid #3c3c3c;
-    flex: 0 0 auto;
-    max-height: 50vh;
-    overflow-y: auto;
+    flex: 0 0 auto; /* Don't expand or shrink */
+    max-height: none; /* Allow natural height - parent scrolls */
+    overflow: visible; /* Don't cut off expanded items */
 }
 
 .extracted-content-section::-webkit-scrollbar {
-    width: 8px;
+    /* Removed - parent handles scrolling */
+    display: none;
 }
 
 .extracted-content-section::-webkit-scrollbar-track {
-    background: #1e1e1e;
+    /* Removed - not needed */
 }
 
 .extracted-content-section::-webkit-scrollbar-thumb {
-    background: #4A90E2;
-    border-radius: 4px;
+    /* Removed - not needed */
 }
 
 .extracted-content-section::-webkit-scrollbar-thumb:hover {
-    background: #5BA0F2;
+    /* Removed - not needed */
 }
 
 .extracted-content-section h4 {
@@ -2944,7 +2945,11 @@ button:active {
    ============================================================================ */
 
 .multi-agent-results {
-    max-height: calc(100vh - 200px);
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    max-height: calc(100vh - 260px);
+    min-height: 200px;
     overflow-y: auto;
     overflow-x: hidden;
     padding: 20px;
