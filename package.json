@@ -20,8 +20,15 @@
     "@mozilla/readability": "^0.6.0",
     "@supabase/supabase-js": "^2.87.1",
     "cheerio": "^1.1.2",
+    "docx": "^9.5.1",
     "dotenv": "^16.3.1",
-    "jsdom": "^27.3.0"
+    "he": "^1.2.0",
+    "jsdom": "^27.3.0",
+    "markdown-to-docx": "^1.2.0",
+    "marked": "^17.0.1",
+    "undici": "^7.16.0",
+    "youtube-transcript-plus": "^1.1.1",
+    "youtubei.js": "^16.0.1"
   },
   "devDependencies": {
     "@langchain/anthropic": "^0.3.33",

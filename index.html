@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+<!-- Version: TABLE_SUPPORT_1765950000 - Added Word export table conversion -->
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -180,37 +181,51 @@
                     </div>
                 </div>
                 
-                <div class="ai-messages" id="ai-messages">
-                    <div class="ai-message system">
-                        <p><strong>👋 Welcome to AI-Powered Level Design!</strong></p>
-                        <p>I'm your collaborative AI assistant. I can:</p>
-                        <ul>
-                            <li>Answer questions about game design</li>
-                            <li>Analyze your level layout</li>
-                            <li><strong>Actually manipulate objects</strong> in your level</li>
-                            <li>Suggest improvements and implement them</li>
-                        </ul>
-                        <p style="margin-top: 12px;">Click the ⚙️ settings button to configure your API key and get started!</p>
+                <!-- Research Tabs - Phase 8 -->
+                <div class="ai-tabs">
+                    <button class="ai-tab-btn active" data-tab="chat">💬 Chat</button>
+                    <button class="ai-tab-btn" data-tab="video">📹 Video</button>
+                </div>
+                
+                <!-- Chat Tab Content -->
+                <div class="ai-tab-content active" id="chat-tab">
+                    <div class="ai-messages" id="ai-messages">
+                        <div class="ai-message system">
+                            <p><strong>👋 Welcome to AI-Powered Level Design!</strong></p>
+                            <p>I'm your collaborative AI assistant. I can:</p>
+                            <ul>
+                                <li>Answer questions about game design</li>
+                                <li>Analyze your level layout</li>
+                                <li><strong>Actually manipulate objects</strong> in your level</li>
+                                <li>Suggest improvements and implement them</li>
+                            </ul>
+                            <p style="margin-top: 12px;">Click the ⚙️ settings button to configure your API key and get started!</p>
+                        </div>
+                    </div>
+                    
+                    <div class="ai-input-container">
+                        <textarea 
+                            id="ai-input" 
+                            placeholder="Ask about your level or request changes... (Enter to send, Shift+Enter for new line)" 
+                            rows="3"
+                            disabled
+                            title="Configure API key in settings to enable AI chat"></textarea>
+                        <div class="ai-input-actions">
+                            <div class="keyboard-hints" style="display: none;" id="keyboard-hints">
+                                <span class="hint"><kbd>↵</kbd> Send</span>
+                                <span class="hint"><kbd>Shift</kbd>+<kbd>↵</kbd> New line</span>
+                                <span class="hint"><kbd>Ctrl</kbd>+<kbd>K</kbd> Clear</span>
+                            </div>
+                            <button id="ai-send" class="btn-primary" disabled title="Send message (Enter)">
+                                <span class="icon">➤</span> Send
+                            </button>
+                        </div>
                     </div>
                 </div>
                 
-                <div class="ai-input-container">
-                    <textarea 
-                        id="ai-input" 
-                        placeholder="Ask about your level or request changes... (Enter to send, Shift+Enter for new line)" 
-                        rows="3"
-                        disabled
-                        title="Configure API key in settings to enable AI chat"></textarea>
-                    <div class="ai-input-actions">
-                        <div class="keyboard-hints" style="display: none;" id="keyboard-hints">
-                            <span class="hint"><kbd>↵</kbd> Send</span>
-                            <span class="hint"><kbd>Shift</kbd>+<kbd>↵</kbd> New line</span>
-                            <span class="hint"><kbd>Ctrl</kbd>+<kbd>K</kbd> Clear</span>
-                        </div>
-                        <button id="ai-send" class="btn-primary" disabled title="Send message (Enter)">
-                            <span class="icon">➤</span> Send
-                        </button>
-                    </div>
+                <!-- Video Tab Content - Phase 8 -->
+                <div class="ai-tab-content" id="video-tab" style="display: none;">
+                    <!-- Video UI will be injected here -->
                 </div>
             </aside>
             
@@ -578,6 +593,7 @@
     </script>
 
     <!-- Multi-Agent Consortium Modal -->
+    <!-- Multi-Agent Modal -->
     <div id="multi-agent-modal" class="multi-agent-modal" style="display: none;">
         <div class="modal-content">
             <div class="modal-header">
@@ -675,5 +691,1267 @@
     
     <!-- Auth UI Script -->
     <script type="module" src="auth-ui.js"></script>
+    
+    <!-- Phase 8: Video UI Integration -->
+    <script type="module">
+        import VideoUI from './video-ui.js';
+        import { VideoHistoryUI } from './video-history-ui.js';
+        import { VideoBatchUI } from './video-batch-ui.js';
+        import { videoHistory } from './video-history-manager.js';
+        import { videoCollections } from './video-collections-manager.js';
+        
+        // Initialize immediately - DOM is already loaded at this point (script at end of body)
+        console.log('🎬 Phase 8: Video UI script executing...');
+        
+        // Initialize managers
+        await videoHistory.initialize();
+        await videoCollections.initialize();
+        
+        const videoTabContent = document.getElementById('video-tab');
+        if (videoTabContent) {
+            new VideoUI(videoTabContent);
+            console.log('✅ Video UI initialized');
+        } else {
+            console.error('❌ video-tab element not found');
+        }
+        
+        // Initialize History UI
+        const historyContainer = document.getElementById('video-history-container');
+        let videoHistoryUI = null;
+        if (historyContainer) {
+            videoHistoryUI = new VideoHistoryUI(historyContainer);
+            console.log('✅ Video History UI initialized');
+        }
+        
+        // Initialize Batch UI
+        const batchContainer = document.getElementById('batch-video-grid');
+        let videoBatchUI = null;
+        if (batchContainer) {
+            videoBatchUI = new VideoBatchUI(batchContainer);
+            console.log('✅ Video Batch UI initialized');
+        }
+        
+        // Main tab switching (Search / History / Batch / Current Video)
+        const mainTabButtons = document.querySelectorAll('.video-main-tab');
+        mainTabButtons.forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.preventDefault();
+                const tabName = btn.dataset.mainTab;
+                console.log(`🔄 Switching to main tab: ${tabName}`);
+                
+                // Remove active class from all main tabs
+                mainTabButtons.forEach(b => {
+                    b.classList.remove('active');
+                    b.style.color = 'rgba(255,255,255,0.6)';
+                    b.style.borderBottom = '3px solid transparent';
+                });
+                
+                // Add active class to clicked tab
+                btn.classList.add('active');
+                btn.style.color = '#61dafb';
+                btn.style.borderBottom = '3px solid #61dafb';
+                
+                // Hide all main tab contents
+                document.querySelectorAll('.main-tab-content').forEach(content => {
+                    content.style.display = 'none';
+                });
+                
+                // Show selected main tab content
+                const selectedTab = document.getElementById(`${tabName}-main-tab`);
+                if (selectedTab) {
+                    selectedTab.style.display = 'flex';
+                    
+                    // Render appropriate UI
+                    if (tabName === 'history' && videoHistoryUI) {
+                        videoHistoryUI.render();
+                    } else if (tabName === 'batch' && videoBatchUI) {
+                        videoBatchUI.render();
+                    }
+                }
+            });
+        });
+        
+        // Tab switching (for Current Video subtabs)
+        const tabButtons = document.querySelectorAll('.ai-tab-btn');
+        console.log(`📑 Found ${tabButtons.length} tab buttons`);
+        
+        tabButtons.forEach((btn, index) => {
+            console.log(`  Tab ${index}: ${btn.dataset.tab}`);
+            btn.addEventListener('click', (e) => {
+                e.preventDefault();
+                const tabName = btn.dataset.tab;
+                console.log(`🔄 Switching to tab: ${tabName}`);
+                
+                // Update buttons
+                document.querySelectorAll('.ai-tab-btn').forEach(b => {
+                    b.classList.remove('active');
+                });
+                btn.classList.add('active');
+                
+                // Update content
+                document.querySelectorAll('.ai-tab-content').forEach(content => {
+                    content.classList.remove('active');
+                    content.style.display = 'none';
+                });
+                
+                const activeContent = document.getElementById(`${tabName}-tab`);
+                if (activeContent) {
+                    activeContent.classList.add('active');
+                    activeContent.style.display = 'flex';
+                    console.log(`✅ Tab ${tabName} activated`);
+                } else {
+                    console.error(`❌ Tab content not found: ${tabName}-tab`);
+                }
+            });
+        });
+    </script>
+
+    <!-- Phase 8 Week 2: Content Creation Tools -->
+    <script type="module">
+        // Import docx library for Word export
+        let docx;
+        import('https://cdn.skypack.dev/docx@8.5.0').then(module => {
+            docx = module;
+            window.docx = module;
+            console.log('✅ docx library loaded from Skypack CDN');
+        }).catch(err => {
+            console.error('❌ Failed to load docx library:', err);
+        });
+        
+        // Cache-busting: Add timestamp to force reload of module
+        const cacheBuster = Date.now();
+        import(`./video-content-tools.js?v=${cacheBuster}`).then(module => {
+            const { VideoContentTools } = module;
+            window.VideoContentTools = VideoContentTools;
+            console.log('✅ VideoContentTools loaded with cache buster:', cacheBuster);
+        });
+        
+        // Store current video data and tools instance globally
+        window.currentVideoData = null;
+        window.currentTranscript = null;
+        window.videoTools = null;
+        
+        // Initialize tools when transcript is loaded
+        window.initializeVideoTools = function(videoData, transcript) {
+            window.currentVideoData = videoData;
+            window.currentTranscript = transcript;
+            window.videoTools = new window.VideoContentTools(videoData, transcript);
+            console.log('🎨 Video Content Tools initialized');
+        };
+        
+        // Generate Quiz from Video
+        window.generateQuizFromVideo = async function() {
+            if (!window.videoTools) {
+                alert('Please load a video and transcript first!');
+                return;
+            }
+            
+            console.log('📝 Generating quiz...');
+            showToolLoading('Generating Quiz', 'This may take 30-60 seconds...');
+            
+            try {
+                const result = await window.videoTools.generateQuiz({
+                    numMultipleChoice: 5,
+                    numShortAnswer: 3,
+                    numTrueFalse: 5,
+                    numFillInBlank: 5,
+                    difficulty: 'mixed',
+                    includeTimestamps: true
+                });
+                
+                showToolOutput('Quiz', result.markdown, result);
+                console.log('✅ Quiz generated successfully');
+            } catch (error) {
+                console.error('❌ Quiz generation failed:', error);
+                alert('Failed to generate quiz: ' + error.message);
+                backToToolsGrid();
+            }
+        };
+        
+        // Generate Lesson Plan from Video
+        window.generateLessonPlanFromVideo = async function() {
+            if (!window.videoTools) {
+                alert('Please load a video and transcript first!');
+                return;
+            }
+            
+            console.log('📚 Generating lesson plan...');
+            showToolLoading('Generating Lesson Plan', 'This may take 30-60 seconds...');
+            
+            try {
+                const result = await window.videoTools.generateLessonPlan({
+                    gradeLevel: '9-12',
+                    duration: '45 minutes',
+                    subject: 'General',
+                    includeActivities: true,
+                    includeDifferentiation: true
+                });
+                
+                showToolOutput('Lesson Plan', result.markdown, result);
+                console.log('✅ Lesson plan generated successfully');
+            } catch (error) {
+                console.error('❌ Lesson plan generation failed:', error);
+                alert('Failed to generate lesson plan: ' + error.message);
+                backToToolsGrid();
+            }
+        };
+        
+        // Generate Discussion Questions from Video
+        window.generateDiscussionQuestionsFromVideo = async function() {
+            if (!window.videoTools) {
+                alert('Please load a video and transcript first!');
+                return;
+            }
+            
+            console.log('💬 Generating discussion questions...');
+            showToolLoading('Generating Discussion Questions', 'This may take 30-60 seconds...');
+            
+            try {
+                const result = await window.videoTools.generateDiscussionQuestions({
+                    numPerLevel: 3,
+                    includeSocratic: true,
+                    includeDebate: true
+                });
+                
+                showToolOutput('Discussion Questions', result.markdown, result);
+                console.log('✅ Discussion questions generated successfully');
+            } catch (error) {
+                console.error('❌ Discussion questions generation failed:', error);
+                alert('Failed to generate discussion questions: ' + error.message);
+                backToToolsGrid();
+            }
+        };
+        
+        // Generate DOK 3-4 Project from Video
+        window.generateDOKProjectFromVideo = async function() {
+            if (!window.videoTools) {
+                alert('Please load a video and transcript first!');
+                return;
+            }
+            
+            // Prompt user for DOK level and project type
+            const dokLevel = prompt('Enter DOK Level (3 for Strategic Thinking, 4 for Extended Thinking):', '3');
+            if (!dokLevel || (dokLevel !== '3' && dokLevel !== '4')) {
+                alert('Please enter either 3 or 4 for DOK level');
+                return;
+            }
+            
+            const projectTypes = {
+                '1': 'research',
+                '2': 'design',
+                '3': 'investigation',
+                '4': 'synthesis'
+            };
+            
+            const projectTypeChoice = prompt('Select Project Type:\n1. Research\n2. Design\n3. Investigation\n4. Synthesis\n\nEnter number (1-4):', '1');
+            const projectType = projectTypes[projectTypeChoice] || 'research';
+            
+            console.log(`🎓 Generating DOK ${dokLevel} ${projectType} project...`);
+            showToolLoading(`Generating DOK ${dokLevel} Project`, 'Extended projects require 60-90 seconds...');
+            
+            try {
+                const result = await window.videoTools.generateDOKProject({
+                    dokLevel: parseInt(dokLevel),
+                    projectType: projectType,
+                    duration: dokLevel === '4' ? '2-3 weeks' : '1-2 weeks',
+                    gradeLevel: '9-12',
+                    subject: 'General'
+                });
+                
+                showToolOutput(`DOK ${dokLevel} Project`, result.markdown, result);
+                console.log('✅ DOK project generated successfully');
+            } catch (error) {
+                console.error('❌ DOK project generation failed:', error);
+                alert('Failed to generate DOK project: ' + error.message);
+                backToToolsGrid();
+            }
+        };
+        
+        // Generate Vocabulary Builder from Video
+        window.generateVocabularyFromVideo = async function() {
+            if (!window.videoTools) {
+                alert('Please load a video and transcript first!');
+                return;
+            }
+            
+            // Prompt user for grade level
+            const gradeLevels = {
+                '1': 'elementary school',
+                '2': 'middle school',
+                '3': 'high school',
+                '4': 'college'
+            };
+            
+            const gradeChoice = prompt('Select Grade Level:\n1. Elementary School (K-5)\n2. Middle School (6-8)\n3. High School (9-12)\n4. College\n\nEnter number (1-4):', '2');
+            const gradeLevel = gradeLevels[gradeChoice] || 'middle school';
+            
+            console.log(`📚 Generating vocabulary list for ${gradeLevel}...`);
+            showToolLoading('Generating Vocabulary List', 'Extracting key terms and definitions...');
+            
+            try {
+                const result = await window.videoTools.generateVocabulary({
+                    gradeLevel: gradeLevel,
+                    numTerms: 15
+                });
+                
+                showToolOutput('Vocabulary List', result.markdown, result);
+                console.log('✅ Vocabulary list generated successfully');
+            } catch (error) {
+                console.error('❌ Vocabulary generation failed:', error);
+                alert('Failed to generate vocabulary: ' + error.message);
+                backToToolsGrid();
+            }
+        };
+        
+        // Generate Guided Notes from Video
+        window.generateGuidedNotesFromVideo = async function() {
+            if (!window.videoTools) {
+                alert('Please load a video and transcript first!');
+                return;
+            }
+            
+            // Prompt user for note style
+            const noteStyles = {
+                '1': 'cornell',
+                '2': 'outline',
+                '3': 'fillinblank',
+                '4': 'guided'
+            };
+            
+            const styleChoice = prompt('Select Note Style:\n1. Cornell Notes (questions + notes + summary)\n2. Outline (hierarchical structure)\n3. Fill-in-the-Blank (worksheets)\n4. Guided Questions (content + questions)\n\nEnter number (1-4):', '1');
+            const noteStyle = noteStyles[styleChoice] || 'cornell';
+            
+            // Prompt for grade level
+            const gradeLevels = {
+                '1': 'elementary school',
+                '2': 'middle school',
+                '3': 'high school',
+                '4': 'college'
+            };
+            
+            const gradeChoice = prompt('Select Grade Level:\n1. Elementary School (K-5)\n2. Middle School (6-8)\n3. High School (9-12)\n4. College\n\nEnter number (1-4):', '2');
+            const gradeLevel = gradeLevels[gradeChoice] || 'middle school';
+            
+            const styleNames = {
+                cornell: 'Cornell Notes',
+                outline: 'Outline',
+                fillinblank: 'Fill-in-the-Blank',
+                guided: 'Guided Questions'
+            };
+            
+            console.log(`📝 Generating ${styleNames[noteStyle]} for ${gradeLevel}...`);
+            showToolLoading(`Generating ${styleNames[noteStyle]}`, 'Creating structured note-taking template...');
+            
+            try {
+                const result = await window.videoTools.generateGuidedNotes({
+                    noteStyle: noteStyle,
+                    gradeLevel: gradeLevel
+                });
+                
+                showToolOutput(styleNames[noteStyle], result.markdown, result);
+                console.log('✅ Guided notes generated successfully');
+            } catch (error) {
+                console.error('❌ Guided notes generation failed:', error);
+                alert('Failed to generate guided notes: ' + error.message);
+                backToToolsGrid();
+            }
+        };
+        
+        // Generate Graphic Organizer from Video
+        window.generateGraphicOrganizerFromVideo = async function() {
+            if (!window.videoTools) {
+                alert('Please load a video and transcript first!');
+                return;
+            }
+            
+            // Prompt user for organizer type
+            const organizerTypes = {
+                '1': 'Concept Map',
+                '2': 'Timeline',
+                '3': 'Venn Diagram',
+                '4': 'Cause and Effect',
+                '5': 'KWL Chart',
+                '6': 'Mind Map'
+            };
+            
+            const typeChoice = prompt('Select Graphic Organizer Type:\n1. Concept Map (central idea with connections)\n2. Timeline (chronological events)\n3. Venn Diagram (compare/contrast)\n4. Cause and Effect (relationships)\n5. KWL Chart (Know, Want, Learned)\n6. Mind Map (branching topics)\n\nEnter number (1-6):', '1');
+            const organizerType = organizerTypes[typeChoice] || 'Concept Map';
+            
+            // Prompt for grade level
+            const gradeLevels = {
+                '1': 'elementary school',
+                '2': 'middle school',
+                '3': 'high school',
+                '4': 'college'
+            };
+            
+            const gradeChoice = prompt('Select Grade Level:\n1. Elementary School (K-5)\n2. Middle School (6-8)\n3. High School (9-12)\n4. College\n\nEnter number (1-4):', '2');
+            const gradeLevel = gradeLevels[gradeChoice] || 'middle school';
+            
+            console.log(`🗺️ Generating ${organizerType} for ${gradeLevel}...`);
+            showToolLoading(`Generating ${organizerType}`, 'Creating visual learning organizer...');
+            
+            try {
+                const result = await window.videoTools.generateGraphicOrganizer({
+                    organizerType: organizerType,
+                    gradeLevel: gradeLevel
+                });
+                
+                showToolOutput(organizerType, result.markdown, result);
+                console.log('✅ Graphic organizer generated successfully');
+            } catch (error) {
+                console.error('❌ Graphic organizer generation failed:', error);
+                alert('Failed to generate graphic organizer: ' + error.message);
+                backToToolsGrid();
+            }
+        };
+        
+        // Show "Coming Soon" message for tools not yet implemented
+        window.showComingSoon = function(toolName) {
+            alert(`${toolName} will be available soon!\n\nPhase 8 Week 3 Nearly Complete:\n✅ Quiz Maker\n✅ Lesson Plan Generator\n✅ Discussion Questions\n✅ DOK 3-4 Projects\n✅ Vocabulary Builder\n✅ Guided Notes\n\n🚧 Coming in final update:\n- Graphic Organizers`);
+        };
+        
+        // Show loading state while generating
+        function showToolLoading(toolName, message) {
+            const grid = document.getElementById('create-tools-grid');
+            const output = document.getElementById('create-tool-output');
+            const title = document.getElementById('create-output-title');
+            const content = document.getElementById('create-output-content');
+            
+            grid.style.display = 'none';
+            output.style.display = 'flex';
+            title.textContent = toolName;
+            content.innerHTML = `
+                <div style="text-align: center; padding: 60px 20px; color: #61dafb;">
+                    <div class="spinner" style="margin: 0 auto 20px; width: 50px; height: 50px; border-width: 5px;"></div>
+                    <div style="font-size: 18px; font-weight: bold; margin-bottom: 10px;">Generating ${toolName}...</div>
+                    <div style="font-size: 14px; color: rgba(255, 255, 255, 0.6);">${message}</div>
+                    <div style="margin-top: 20px; font-size: 13px; color: rgba(255, 255, 255, 0.5);">
+                        Using Claude Sonnet 4 with multi-agent intelligence
+                    </div>
+                </div>
+            `;
+        }
+        
+        // Show generated output
+        function showToolOutput(toolName, markdownContent, fullResult) {
+            const grid = document.getElementById('create-tools-grid');
+            const output = document.getElementById('create-tool-output');
+            const title = document.getElementById('create-output-title');
+            const content = document.getElementById('create-output-content');
+            
+            console.log('🔍 showToolOutput called:', { toolName, markdownLength: markdownContent?.length, fullResult });
+            
+            // Show output container, hide loading
+            grid.style.display = 'none';
+            output.style.display = 'flex';
+            
+            title.textContent = toolName;
+            
+            // Convert markdown to HTML for display
+            const htmlContent = markdownToHTML(markdownContent);
+            console.log('🔍 Converted HTML length:', htmlContent?.length);
+            console.log('🔍 First 500 chars of HTML:', htmlContent?.substring(0, 500));
+            content.innerHTML = htmlContent;
+            console.log('🔍 Content div innerHTML set, element:', content);
+            
+            // Store full result for export
+            window.currentGeneratedContent = {
+                toolName,
+                markdown: markdownContent,
+                raw: fullResult.raw,
+                plainText: fullResult.plainText
+            };
+            
+            // Scroll to top
+            content.scrollTop = 0;
+        }
+        
+        // Back to tools grid
+        window.backToToolsGrid = function() {
+            document.getElementById('create-tools-grid').style.display = 'grid';
+            document.getElementById('create-tool-output').style.display = 'none';
+            window.currentGeneratedContent = null;
+        };
+        
+        // Copy content to clipboard
+        window.copyCreatedContent = function() {
+            if (!window.currentGeneratedContent) return;
+            
+            navigator.clipboard.writeText(window.currentGeneratedContent.markdown).then(() => {
+                // Show success feedback
+                const btn = event.target;
+                const originalText = btn.innerHTML;
+                btn.innerHTML = '✅ Copied!';
+                btn.style.background = '#4caf50';
+                setTimeout(() => {
+                    btn.innerHTML = originalText;
+                    btn.style.background = '';
+                }, 2000);
+            });
+        };
+        
+        // Export as Markdown file
+        window.exportCreatedContentMarkdown = function() {
+            if (!window.currentGeneratedContent) return;
+            
+            const content = window.currentGeneratedContent.markdown;
+            const toolName = window.currentGeneratedContent.toolName;
+            const filename = `${toolName}_${window.currentVideoData.videoId}_${Date.now()}.md`;
+            
+            const blob = new Blob([content], { type: 'text/markdown' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            a.click();
+            URL.revokeObjectURL(url);
+        };
+        
+        // Export as Word (.docx) file
+        window.exportCreatedContentDocx = async function() {
+            if (!window.currentGeneratedContent) return;
+            
+            // Check if docx library is loaded
+            if (typeof docx === 'undefined') {
+                alert('Word export library is still loading. Please wait a moment and try again.');
+                console.error('docx library not loaded yet');
+                return;
+            }
+            
+            try {
+                const { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType } = docx;
+                
+                const content = window.currentGeneratedContent.markdown;
+                const toolName = window.currentGeneratedContent.toolName;
+                const filename = `${toolName}_${window.currentVideoData.videoId}_${Date.now()}.docx`;
+                
+                // Clean markdown: remove excessive asterisks and clean up formatting
+                const cleanedContent = content
+                    .replace(/\*\*\*\*/g, '**')  // Remove quad asterisks
+                    .replace(/\*\*\*/g, '**')     // Remove triple asterisks
+                    .replace(/\n{3,}/g, '\n\n');  // Collapse multiple newlines
+                
+                // Parse markdown into document structure
+                const paragraphs = [];
+                const lines = cleanedContent.split('\n');
+                
+                // Add title
+                paragraphs.push(
+                    new Paragraph({
+                        text: toolName,
+                        heading: HeadingLevel.TITLE,
+                        spacing: { after: 200 }
+                    })
+                );
+                
+                // Add video info
+                if (window.currentVideoData) {
+                    paragraphs.push(
+                        new Paragraph({
+                            children: [
+                                new TextRun({
+                                    text: `Video: ${window.currentVideoData.title}`,
+                                    italics: true,
+                                    size: 20
+                                })
+                            ],
+                            spacing: { after: 400 }
+                        })
+                    );
+                }
+                
+                // Parse markdown content
+                const { Table, TableRow, TableCell, WidthType, BorderStyle } = docx;
+                let inTable = false;
+                let tableRows = [];
+                
+                console.log('🔍 Starting markdown parsing. Total lines:', lines.length);
+                
+                for (let i = 0; i < lines.length; i++) {
+                    const line = lines[i].trim();
+                    
+                    console.log(`Line ${i}:`, JSON.stringify(line.substring(0, 50)));
+                    
+                    if (!line) {
+                        // If we're in a table, end it
+                        if (inTable && tableRows.length > 0) {
+                            paragraphs.push(createWordTable(tableRows));
+                            inTable = false;
+                            tableRows = [];
+                        }
+                        paragraphs.push(new Paragraph({ text: '' }));
+                        continue;
+                    }
+                    
+                    // Table separator line (|---|---|)
+                    if (line.startsWith('|') && line.includes('-') && line.split('|').filter(c => c.trim()).every(c => c.match(/^-+$/))) {
+                        continue; // Skip separator lines
+                    }
+                    
+                    // Table row detection (| cell1 | cell2 |)
+                    if (line.startsWith('|') && line.endsWith('|')) {
+                        console.log('📊 Detected table row:', line);
+                        const cells = line.split('|')
+                            .map(c => c.trim())
+                            .filter(c => c); // Remove empty strings from start/end
+                        
+                        console.log('   Parsed cells:', cells);
+                        
+                        if (cells.length > 0) {
+                            if (!inTable) {
+                                inTable = true;
+                                tableRows = [];
+                                console.log('   ✅ Starting new table');
+                            }
+                            tableRows.push(cells);
+                            continue;
+                        }
+                    }
+                    
+                    // If we were in a table and hit a non-table line, end the table
+                    if (inTable && tableRows.length > 0) {
+                        console.log('🏁 Ending table with', tableRows.length, 'rows');
+                        paragraphs.push(createWordTable(tableRows));
+                        inTable = false;
+                        tableRows = [];
+                    }
+                    
+                    // Headers
+                    if (line.startsWith('#### ')) {
+                        paragraphs.push(new Paragraph({
+                            text: line.substring(5),
+                            heading: HeadingLevel.HEADING_4,
+                            spacing: { before: 200, after: 100 }
+                        }));
+                    } else if (line.startsWith('### ')) {
+                        paragraphs.push(new Paragraph({
+                            text: line.substring(4),
+                            heading: HeadingLevel.HEADING_3,
+                            spacing: { before: 200, after: 100 }
+                        }));
+                    } else if (line.startsWith('## ')) {
+                        paragraphs.push(new Paragraph({
+                            text: line.substring(3),
+                            heading: HeadingLevel.HEADING_2,
+                            spacing: { before: 200, after: 100 }
+                        }));
+                    } else if (line.startsWith('# ')) {
+                        paragraphs.push(new Paragraph({
+                            text: line.substring(2),
+                            heading: HeadingLevel.HEADING_1,
+                            spacing: { before: 200, after: 100 }
+                        }));
+                    }
+                    // List items
+                    else if (line.startsWith('- ') || line.match(/^\d+\. /)) {
+                        const text = line.replace(/^[-\d]+\.?\s/, '');
+                        const textRuns = parseInlineFormatting(text);
+                        paragraphs.push(new Paragraph({
+                            children: textRuns,
+                            bullet: { level: 0 },
+                            spacing: { after: 100 }
+                        }));
+                    }
+                    // Regular paragraphs
+                    else {
+                        const textRuns = parseInlineFormatting(line);
+                        paragraphs.push(new Paragraph({
+                            children: textRuns,
+                            spacing: { after: 200 }
+                        }));
+                    }
+                }
+                
+                // End any remaining table
+                if (inTable && tableRows.length > 0) {
+                    console.log('🏁 Ending final table with', tableRows.length, 'rows');
+                    paragraphs.push(createWordTable(tableRows));
+                }
+                
+                console.log('✅ Markdown parsing complete. Total paragraphs/tables:', paragraphs.length);
+                
+                // Helper function to create Word tables
+                function createWordTable(rows) {
+                    console.log('🔨 Creating Word table with', rows.length, 'rows');
+                    const wordRows = rows.map((row, rowIndex) => {
+                        const cells = row.map(cellText => {
+                            return new TableCell({
+                                children: [new Paragraph({ 
+                                    children: [new TextRun({ 
+                                        text: cellText,
+                                        bold: rowIndex === 0 // Bold header row
+                                    })]
+                                })],
+                                shading: rowIndex === 0 ? { fill: "d9d9d9" } : undefined,
+                                margins: {
+                                    top: 100,
+                                    bottom: 100,
+                                    left: 100,
+                                    right: 100
+                                }
+                            });
+                        });
+                        
+                        return new TableRow({ children: cells });
+                    });
+                    
+                    return new Table({
+                        rows: wordRows,
+                        width: { size: 100, type: WidthType.PERCENTAGE },
+                        borders: {
+                            top: { style: BorderStyle.SINGLE, size: 1 },
+                            bottom: { style: BorderStyle.SINGLE, size: 1 },
+                            left: { style: BorderStyle.SINGLE, size: 1 },
+                            right: { style: BorderStyle.SINGLE, size: 1 },
+                            insideHorizontal: { style: BorderStyle.SINGLE, size: 1 },
+                            insideVertical: { style: BorderStyle.SINGLE, size: 1 }
+                        }
+                    });
+                }
+                
+                // Helper function to parse bold/italic
+                function parseInlineFormatting(text) {
+                    const runs = [];
+                    
+                    // Clean up excessive asterisks first
+                    text = text.replace(/\*{4,}/g, '**');  // 4+ asterisks -> bold
+                    text = text.replace(/\*{3}/g, '**');    // 3 asterisks -> bold
+                    
+                    // Simple regex for **bold** and *italic*
+                    const boldRegex = /\*\*(.*?)\*\*/g;
+                    const italicRegex = /(?<!\*)\*(?!\*)(.+?)(?<!\*)\*(?!\*)/g;
+                    
+                    // Replace bold first
+                    text = text.replace(boldRegex, (match, content) => {
+                        return `<BOLD>${content}</BOLD>`;
+                    });
+                    
+                    // Replace italic (but not bold markers)
+                    text = text.replace(italicRegex, (match, content) => {
+                        if (content.includes('<BOLD>')) return match;
+                        return `<ITALIC>${content}</ITALIC>`;
+                    });
+                    
+                    // Parse the modified text
+                    const parts = text.split(/(<BOLD>.*?<\/BOLD>|<ITALIC>.*?<\/ITALIC>)/);
+                    
+                    for (const part of parts) {
+                        if (!part) continue;
+                        
+                        if (part.startsWith('<BOLD>')) {
+                            const content = part.replace(/<\/?BOLD>/g, '');
+                            runs.push(new TextRun({ text: content, bold: true }));
+                        } else if (part.startsWith('<ITALIC>')) {
+                            const content = part.replace(/<\/?ITALIC>/g, '');
+                            runs.push(new TextRun({ text: content, italics: true }));
+                        } else {
+                            // Remove any remaining asterisks
+                            const cleaned = part.replace(/\*/g, '');
+                            if (cleaned) {
+                                runs.push(new TextRun({ text: cleaned }));
+                            }
+                        }
+                    }
+                    
+                    return runs.length > 0 ? runs : [new TextRun({ text: text })];
+                }
+                
+                // Create document
+                const doc = new Document({
+                    sections: [{
+                        properties: {},
+                        children: paragraphs
+                    }]
+                });
+                
+                // Generate and download
+                const blob = await Packer.toBlob(doc);
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = filename;
+                a.click();
+                URL.revokeObjectURL(url);
+                
+                console.log('✅ Word document downloaded successfully:', filename);
+                
+            } catch (error) {
+                console.error('Error exporting to Word:', error);
+                alert('Failed to export to Word: ' + error.message);
+            }
+        };
+        
+        // Create in Google Docs (placeholder for Phase 10)
+        window.createInGoogleDocs = function() {
+            alert('📝 Google Docs Live Integration\n\nThis feature will be available in Phase 10!\n\nIt will allow you to:\n✓ Click "Create in Google Docs"\n✓ Watch document generate line-by-line\n✓ Auto-save to your Google Drive\n✓ Continue editing in Google Docs\n\nFor now, use "Copy" or "Markdown" to export.');
+        };
+        
+        // Simple markdown to HTML converter
+        function markdownToHTML(markdown) {
+            if (!markdown) return '';
+            
+            let html = markdown;
+            
+            // Tables (must be done BEFORE other replacements)
+            const lines = html.split('\n');
+            let inTable = false;
+            let tableHTML = '';
+            let processedLines = [];
+            
+            for (let i = 0; i < lines.length; i++) {
+                const line = lines[i].trim();
+                
+                // Check if this is a table row (| cell1 | cell2 |)
+                if (line.startsWith('|') && line.endsWith('|')) {
+                    // Skip separator lines (|---|---|)
+                    if (line.match(/^\|[\s:-]+\|$/)) {
+                        continue;
+                    }
+                    
+                    // Parse cells
+                    const cells = line
+                        .substring(1, line.length - 1) // Remove leading/trailing pipes
+                        .split('|')
+                        .map(cell => cell.trim());
+                    
+                    if (!inTable) {
+                        // Start new table
+                        inTable = true;
+                        tableHTML = '<table class="cornell-table" style="width: 100%; border-collapse: collapse; margin: 15px 0;">';
+                        tableHTML += '<thead><tr>';
+                        cells.forEach(cell => {
+                            tableHTML += `<th style="border: 1px solid #ddd; padding: 12px; background: #f5f5f5; font-weight: bold; text-align: left;">${cell}</th>`;
+                        });
+                        tableHTML += '</tr></thead><tbody>';
+                    } else {
+                        // Add data row
+                        tableHTML += '<tr>';
+                        cells.forEach(cell => {
+                            tableHTML += `<td style="border: 1px solid #ddd; padding: 12px; vertical-align: top;">${cell}</td>`;
+                        });
+                        tableHTML += '</tr>';
+                    }
+                } else {
+                    // Not a table line
+                    if (inTable) {
+                        // Close the table
+                        tableHTML += '</tbody></table>';
+                        processedLines.push(tableHTML);
+                        tableHTML = '';
+                        inTable = false;
+                    }
+                    processedLines.push(line);
+                }
+            }
+            
+            // Close any remaining table
+            if (inTable) {
+                tableHTML += '</tbody></table>';
+                processedLines.push(tableHTML);
+            }
+            
+            html = processedLines.join('\n');
+            
+            // Headers (must be done first, in reverse order)
+            html = html.replace(/^#### (.*$)/gim, '<h4>$1</h4>');
+            html = html.replace(/^### (.*$)/gim, '<h3>$1</h3>');
+            html = html.replace(/^## (.*$)/gim, '<h2>$1</h2>');
+            html = html.replace(/^# (.*$)/gim, '<h1>$1</h1>');
+            
+            // Bold
+            html = html.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+            
+            // Italic
+            html = html.replace(/\*(.*?)\*/g, '<em>$1</em>');
+            
+            // Links
+            html = html.replace(/\[([^\]]+)\]\(([^\)]+)\)/g, '<a href="$2" target="_blank">$1</a>');
+            
+            // Horizontal rules
+            html = html.replace(/^---+$/gm, '<hr/>');
+            
+            // Unordered lists
+            html = html.replace(/^- (.+)$/gm, '<li>$1</li>');
+            
+            // Ordered lists  
+            html = html.replace(/^\d+\. (.+)$/gm, '<li>$1</li>');
+            
+            // Wrap consecutive <li> in <ul>
+            html = html.replace(/(<li>.*?<\/li>\n?)+/g, function(match) {
+                return '<ul>' + match + '</ul>';
+            });
+            
+            // Paragraphs (split by double newlines)
+            html = html.split('\n\n').map(para => {
+                // Skip if already wrapped in a tag
+                if (para.match(/^<[^>]+>/)) {
+                    return para;
+                }
+                return '<p>' + para + '</p>';
+            }).join('\n');
+            
+            // Single line breaks to <br>
+            html = html.replace(/\n/g, '<br/>');
+            
+            return html;
+        }
+    </script>
+
+    <!-- Full-Screen Video Intelligence Modal -->
+    <div id="video-full-modal" class="multi-agent-modal" style="display: none;">
+        <div class="modal-content" style="max-width: 98vw; width: 98vw; height: 98vh; display: flex; flex-direction: column; overflow: hidden;">
+            <div class="modal-header" style="flex-shrink: 0;">
+                <h2>🎬 YouTube Video Intelligence</h2>
+                <button class="modal-close" id="video-full-modal-close">&times;</button>
+            </div>
+            
+            <!-- Main Tabs (Search / History / Batch / Current Video) -->
+            <div class="video-main-tabs" style="display: flex; gap: 8px; padding: 0 20px; border-bottom: 2px solid rgba(97, 218, 251, 0.2); flex-shrink: 0;">
+                <button class="video-main-tab active" data-main-tab="search" style="padding: 12px 20px; background: none; border: none; color: #61dafb; font-size: 15px; font-weight: bold; border-bottom: 3px solid #61dafb; cursor: pointer;">🔍 Search/Load</button>
+                <button class="video-main-tab" data-main-tab="history" style="padding: 12px 20px; background: none; border: none; color: rgba(255,255,255,0.6); font-size: 15px; font-weight: bold; border-bottom: 3px solid transparent; cursor: pointer;">📚 History</button>
+                <button class="video-main-tab" data-main-tab="batch" style="padding: 12px 20px; background: none; border: none; color: rgba(255,255,255,0.6); font-size: 15px; font-weight: bold; border-bottom: 3px solid transparent; cursor: pointer;">📦 Batch</button>
+                <button class="video-main-tab" data-main-tab="current" style="padding: 12px 20px; background: none; border: none; color: rgba(255,255,255,0.6); font-size: 15px; font-weight: bold; border-bottom: 3px solid transparent; cursor: pointer;">📺 Current Video</button>
+            </div>
+            
+            <div class="modal-body" style="flex: 1; display: flex; flex-direction: column; gap: 15px; overflow: hidden; padding: 20px;">
+                
+                <!-- SEARCH/LOAD TAB -->
+                <div id="search-main-tab" class="main-tab-content" style="display: flex; flex-direction: column; gap: 15px; height: 100%;">
+                    <!-- Search/Load Bar -->
+                    <div style="display: flex; gap: 10px; flex-shrink: 0;">
+                        <input 
+                            type="text" 
+                            id="video-modal-input" 
+                            class="search-input" 
+                            placeholder="Search YouTube or paste video URL/ID..."
+                            style="flex: 1; padding: 12px; font-size: 14px;"
+                        />
+                        <button id="video-modal-search-btn" class="primary-button" style="padding: 12px 20px; white-space: nowrap;">🔍 Search</button>
+                        <button id="video-modal-load-btn" class="primary-button" style="padding: 12px 20px; white-space: nowrap;">▶ Load</button>
+                    </div>
+
+                    <!-- Search Results (collapsible) -->
+                    <div id="video-modal-search-results-container" style="display: none; flex-shrink: 0;">
+                        <h3 style="margin: 0 0 10px 0; color: #61dafb; font-size: 16px;">Search Results</h3>
+                        <div id="video-modal-search-results" style="max-height: 250px; overflow-y: scroll; display: block; border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; padding: 10px; background: rgba(0,0,0,0.3);"></div>
+                    </div>
+                </div>
+                
+                <!-- HISTORY TAB -->
+                <div id="history-main-tab" class="main-tab-content" style="display: none; height: 100%; flex-direction: column; overflow: hidden;">
+                    <div id="video-history-container" style="height: 100%; display: flex; flex-direction: column;"></div>
+                </div>
+                
+                <!-- BATCH TAB -->
+                <div id="batch-main-tab" class="main-tab-content" style="display: none; height: 100%; flex-direction: column; overflow: hidden;">
+                    
+                    <!-- Batch Controls -->
+                    <div style="padding: 15px; border-bottom: 1px solid rgba(255,255,255,0.1); flex-shrink: 0;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                            <div>
+                                <h3 style="margin: 0 0 4px 0; font-size: 16px; color: #61dafb;">Batch Operations</h3>
+                                <p style="margin: 0; font-size: 12px; color: #999;">Select 5-10 videos to generate combined study materials</p>
+                            </div>
+                            <div style="display: flex; gap: 10px; align-items: center;">
+                                <span id="batch-selected-count" style="font-size: 13px; color: #61dafb; font-weight: bold;">0 selected</span>
+                                <button id="batch-select-all" style="padding: 6px 12px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 4px; color: #999; cursor: pointer; font-size: 12px;">Select All</button>
+                                <button id="batch-deselect-all" style="padding: 6px 12px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 4px; color: #999; cursor: pointer; font-size: 12px;">Deselect All</button>
+                            </div>
+                        </div>
+                        
+                        <!-- Batch Actions -->
+                        <div style="display: flex; gap: 10px;">
+                            <button class="batch-action-btn" data-action="weekly-summary" disabled style="flex: 1; padding: 10px; background: rgba(97, 218, 251, 0.1); border: 1px solid rgba(97, 218, 251, 0.3); border-radius: 6px; color: rgba(97, 218, 251, 0.5); cursor: not-allowed; font-size: 13px; font-weight: bold;">
+                                📊 Weekly Summary
+                            </button>
+                            <button class="batch-action-btn" data-action="combined-quiz" disabled style="flex: 1; padding: 10px; background: rgba(97, 218, 251, 0.1); border: 1px solid rgba(97, 218, 251, 0.3); border-radius: 6px; color: rgba(97, 218, 251, 0.5); cursor: not-allowed; font-size: 13px; font-weight: bold;">
+                                📝 Combined Quiz
+                            </button>
+                            <button class="batch-action-btn" data-action="master-vocabulary" disabled style="flex: 1; padding: 10px; background: rgba(97, 218, 251, 0.1); border: 1px solid rgba(97, 218, 251, 0.3); border-radius: 6px; color: rgba(97, 218, 251, 0.5); cursor: not-allowed; font-size: 13px; font-weight: bold;">
+                                📖 Master Vocabulary
+                            </button>
+                            <button class="batch-action-btn" data-action="unit-study-guide" disabled style="flex: 1; padding: 10px; background: rgba(97, 218, 251, 0.1); border: 1px solid rgba(97, 218, 251, 0.3); border-radius: 6px; color: rgba(97, 218, 251, 0.5); cursor: not-allowed; font-size: 13px; font-weight: bold;">
+                                📚 Unit Study Guide
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Batch Video Grid -->
+                    <div id="batch-video-grid" style="flex: 1; overflow-y: auto; padding: 15px;"></div>
+                    
+                    <!-- Batch Output Modal (hidden) -->
+                    <div id="batch-output-modal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.9); z-index: 20000; padding: 40px;">
+                        <div style="background: #1e1e1e; border-radius: 12px; max-width: 1200px; margin: 0 auto; height: 100%; display: flex; flex-direction: column; overflow: hidden;">
+                            <div style="padding: 20px; border-bottom: 1px solid rgba(255,255,255,0.1); flex-shrink: 0; display: flex; justify-content: space-between; align-items: center;">
+                                <h3 id="batch-output-title" style="margin: 0; color: #61dafb; font-size: 20px;"></h3>
+                                <div style="display: flex; gap: 10px;">
+                                    <button id="batch-copy-btn" style="padding: 8px 16px; background: rgba(97, 218, 251, 0.2); border: 1px solid #61dafb; border-radius: 6px; color: #61dafb; cursor: pointer; font-size: 13px;">📋 Copy</button>
+                                    <button id="batch-export-btn" style="padding: 8px 16px; background: rgba(97, 218, 251, 0.2); border: 1px solid #61dafb; border-radius: 6px; color: #61dafb; cursor: pointer; font-size: 13px;">💾 Export</button>
+                                    <button id="batch-close-btn" style="padding: 8px 16px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 6px; color: #999; cursor: pointer; font-size: 13px;">✕ Close</button>
+                                </div>
+                            </div>
+                            <div id="batch-output-content" style="flex: 1; overflow-y: auto; padding: 30px; color: #fff; line-height: 1.8;"></div>
+                        </div>
+                    </div>
+                    
+                </div>
+                
+                <!-- CURRENT VIDEO TAB -->
+
+                
+                <!-- CURRENT VIDEO TAB -->
+                <div id="current-main-tab" class="main-tab-content" style="display: none; height: 100%; overflow: hidden;">
+                    
+                <!-- Video Content (hidden until loaded) - SIDE BY SIDE LAYOUT -->
+                <div id="video-modal-content" style="display: none; flex: 1; overflow: hidden; height: 100%;">
+                    <div style="display: flex; gap: 20px; height: 100%;">
+                        
+                        <!-- LEFT SIDE: Video Player + Info (55% width) -->
+                        <div style="flex: 0 0 55%; display: flex; flex-direction: column; gap: 15px; min-width: 0;">
+                            
+                            <!-- Video Player with Fullscreen Button -->
+                            <div style="position: relative; background: #000; border-radius: 8px; overflow: hidden; flex-shrink: 0;">
+                                <iframe 
+                                    id="video-modal-iframe"
+                                    width="100%" 
+                                    height="450" 
+                                    frameborder="0" 
+                                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen" 
+                                    allowfullscreen>
+                                </iframe>
+                                <button id="video-fullscreen-btn" class="secondary-button" style="position: absolute; top: 10px; right: 10px; padding: 8px 12px; font-size: 13px; background: rgba(0,0,0,0.8); border: 1px solid rgba(255,255,255,0.3); z-index: 100; cursor: pointer;">
+                                    ⛶ Fullscreen
+                                </button>
+                            </div>
+                            
+                            <!-- Video Info -->
+                            <div style="padding: 15px; background: rgba(255,255,255,0.02); border-radius: 8px; flex-shrink: 0;">
+                                <h3 id="video-modal-title" style="margin: 0 0 10px 0; color: #fff; font-size: 18px; line-height: 1.4;"></h3>
+                                <div style="display: flex; gap: 15px; color: #888; font-size: 14px; flex-wrap: wrap;">
+                                    <span id="video-modal-author"></span>
+                                    <span id="video-modal-duration"></span>
+                                    <span id="video-modal-views"></span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- RIGHT SIDE: Tabs and Content (45% width) -->
+                        <div style="flex: 1; display: flex; flex-direction: column; overflow: hidden; min-width: 0;">
+                            
+                            <!-- Tabs -->
+                            <div class="tabs" style="margin-bottom: 15px; flex-shrink: 0; display: flex; gap: 8px; flex-wrap: wrap;">
+                                <button class="tab-button active" data-tab="transcript" style="padding: 10px 16px; font-size: 14px;">📝 Transcript</button>
+                                <button class="tab-button" data-tab="summary" style="padding: 10px 16px; font-size: 14px;">⚡ Summary</button>
+                                <button class="tab-button" data-tab="analysis" style="padding: 10px 16px; font-size: 14px;">🧠 Analysis</button>
+                                <button class="tab-button" data-tab="stats" style="padding: 10px 16px; font-size: 14px;">📊 Stats</button>
+                                <button class="tab-button" data-tab="search-transcript" style="padding: 10px 16px; font-size: 14px;">🔍 Search</button>
+                                <button class="tab-button" data-tab="create" style="padding: 10px 16px; font-size: 14px; background: rgba(97, 218, 251, 0.2); border-color: #61dafb; font-weight: bold;">🎨 Create</button>
+                            </div>
+
+                            <!-- Tab Content Container -->
+                            <div style="flex: 1; overflow: hidden;">
+                                
+                                <!-- Transcript Tab -->
+                                <div id="transcript-tab" class="tab-content active" style="height: 100%; display: flex; flex-direction: column; overflow: hidden;">
+                                    <div id="video-modal-transcript" style="flex: 1; overflow-y: auto; display: block; padding: 20px; background: rgba(255,255,255,0.02); border-radius: 8px; border: 1px solid rgba(255,255,255,0.05); font-size: 14px; line-height: 1.8;">
+                                        <div class="transcript-placeholder" style="color: #888; text-align: center; padding: 40px 20px;">Click "Load Transcript" to fetch captions</div>
+                                    </div>
+                                    <button id="video-modal-load-transcript-btn" class="primary-button" style="margin-top: 15px; padding: 12px; font-size: 15px; flex-shrink: 0;">
+                                        📥 Load Transcript
+                                    </button>
+                                </div>
+
+                                <!-- Summary Tab -->
+                                <div id="summary-tab" class="tab-content" style="display: none; height: 100%; flex-direction: column; overflow: hidden;">
+                                    <div id="video-modal-summary" style="flex: 1; overflow-y: auto; display: block; padding: 20px; background: rgba(255,255,255,0.02); border-radius: 8px; border: 1px solid rgba(255,255,255,0.05); font-size: 14px; line-height: 1.8;">
+                                        <div class="summary-placeholder" style="color: #888; text-align: center; padding: 40px 20px;">Load transcript first, then click "Generate Summary"</div>
+                                    </div>
+                                    <button id="video-modal-generate-summary-btn" class="primary-button" style="margin-top: 15px; padding: 12px; font-size: 15px; display: none; flex-shrink: 0;">
+                                        <span class="icon">✨</span> Generate AI Summary
+                                    </button>
+                                </div>
+
+                                <!-- Analysis Tab -->
+                                <div id="analysis-tab" class="tab-content" style="display: none; height: 100%; overflow: hidden;">
+                                    <div id="video-modal-analysis" style="height: 100%; overflow-y: auto; display: block; padding: 20px; background: rgba(255,255,255,0.02); border-radius: 8px; border: 1px solid rgba(255,255,255,0.05); font-size: 14px; line-height: 1.8;">
+                                        <div class="analysis-placeholder" style="color: #888; text-align: center; padding: 40px 20px;">Generate summary first to see multi-agent analysis</div>
+                                    </div>
+                                </div>
+
+                                <!-- Statistics Tab -->
+                                <div id="stats-tab" class="tab-content" style="display: none; height: 100%; overflow-y: auto;">
+                                    <div id="video-modal-stats" style="padding: 20px; background: rgba(255,255,255,0.02); border-radius: 8px; font-size: 14px;"></div>
+                                </div>
+
+                                <!-- Search Transcript Tab -->
+                                <div id="search-transcript-tab" class="tab-content" style="display: none; height: 100%; flex-direction: column; overflow: hidden;">
+                                    <div class="search-controls" style="margin-bottom: 15px; display: flex; gap: 10px; flex-shrink: 0;">
+                                        <input 
+                                            type="text" 
+                                            id="video-modal-transcript-search" 
+                                            class="search-input" 
+                                            placeholder="Search in transcript..."
+                                            style="flex: 1; padding: 10px; font-size: 14px;"
+                                        />
+                                        <button id="video-modal-search-transcript-btn" class="primary-button" style="padding: 10px 20px; white-space: nowrap;">Search</button>
+                                    </div>
+                                    <div id="video-modal-transcript-search-results" style="flex: 1; overflow-y: auto; padding: 20px; background: rgba(255,255,255,0.02); border-radius: 8px; font-size: 14px;"></div>
+                                </div>
+
+                                <!-- CREATE TAB - Phase 8 Week 2: Content Creation Tools -->
+                                <div id="create-tab" class="tab-content" style="display: none; height: 100%; flex-direction: column; overflow: hidden;">
+                                    
+                                    <!-- Tools Grid (shown initially) -->
+                                    <div id="create-tools-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 15px; padding: 20px; overflow-y: auto;">
+                                        
+                                        <button class="tool-card" onclick="generateQuizFromVideo()" style="background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(97, 218, 251, 0.2); border-radius: 12px; padding: 24px; text-align: center; cursor: pointer; transition: all 0.3s ease; display: flex; flex-direction: column; align-items: center; gap: 12px;">
+                                            <div class="tool-icon" style="font-size: 48px;">📝</div>
+                                            <div class="tool-name" style="font-size: 16px; font-weight: bold; color: #61dafb;">Quiz</div>
+                                            <div class="tool-desc" style="font-size: 13px; color: rgba(255, 255, 255, 0.7); line-height: 1.4;">Multiple choice, short answer, true/false, fill-in-blank</div>
+                                        </button>
+                                        
+                                        <button class="tool-card" onclick="generateLessonPlanFromVideo()" style="background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(97, 218, 251, 0.2); border-radius: 12px; padding: 24px; text-align: center; cursor: pointer; transition: all 0.3s ease; display: flex; flex-direction: column; align-items: center; gap: 12px;">
+                                            <div class="tool-icon" style="font-size: 48px;">📚</div>
+                                            <div class="tool-name" style="font-size: 16px; font-weight: bold; color: #61dafb;">Lesson Plan</div>
+                                            <div class="tool-desc" style="font-size: 13px; color: rgba(255, 255, 255, 0.7); line-height: 1.4;">Complete lesson with objectives, activities, assessment</div>
+                                        </button>
+                                        
+                                        <button class="tool-card" onclick="generateDiscussionQuestionsFromVideo()" style="background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(97, 218, 251, 0.2); border-radius: 12px; padding: 24px; text-align: center; cursor: pointer; transition: all 0.3s ease; display: flex; flex-direction: column; align-items: center; gap: 12px;">
+                                            <div class="tool-icon" style="font-size: 48px;">💬</div>
+                                            <div class="tool-name" style="font-size: 16px; font-weight: bold; color: #61dafb;">Discussion Questions</div>
+                                            <div class="tool-desc" style="font-size: 13px; color: rgba(255, 255, 255, 0.7); line-height: 1.4;">Socratic questions, Bloom's taxonomy, debate topics</div>
+                                        </button>
+                                        
+                                        <button class="tool-card" onclick="generateGuidedNotesFromVideo()" style="background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(97, 218, 251, 0.2); border-radius: 12px; padding: 24px; text-align: center; cursor: pointer; transition: all 0.3s ease; display: flex; flex-direction: column; align-items: center; gap: 12px;">
+                                            <div class="tool-icon" style="font-size: 48px;">📋</div>
+                                            <div class="tool-name" style="font-size: 16px; font-weight: bold; color: #61dafb;">Guided Notes</div>
+                                            <div class="tool-desc" style="font-size: 13px; color: rgba(255, 255, 255, 0.7); line-height: 1.4;">Cornell notes, outlines, fill-in-blank worksheets</div>
+                                        </button>                                            <div style="font-size: 11px; color: #ffa500; font-weight: bold;">COMING SOON</div>
+                                        </button>
+                                        
+                                        <button class="tool-card" onclick="generateVocabularyFromVideo()" style="background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(97, 218, 251, 0.2); border-radius: 12px; padding: 24px; text-align: center; cursor: pointer; transition: all 0.3s ease; display: flex; flex-direction: column; align-items: center; gap: 12px;">
+                                            <div class="tool-icon" style="font-size: 48px;">📖</div>
+                                            <div class="tool-name" style="font-size: 16px; font-weight: bold; color: #61dafb;">Vocabulary</div>
+                                            <div class="tool-desc" style="font-size: 13px; color: rgba(255, 255, 255, 0.7); line-height: 1.4;">Key terms, definitions, flashcards</div>
+                                        </button>
+                                        
+                                        <button class="tool-card" onclick="generateGraphicOrganizerFromVideo()" style="background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(97, 218, 251, 0.2); border-radius: 12px; padding: 24px; text-align: center; cursor: pointer; transition: all 0.3s ease; display: flex; flex-direction: column; align-items: center; gap: 12px;">
+                                            <div class="tool-icon" style="font-size: 48px;">🗺️</div>
+                                            <div class="tool-name" style="font-size: 16px; font-weight: bold; color: #61dafb;">Graphic Organizer</div>
+                                            <div class="tool-desc" style="font-size: 13px; color: rgba(255, 255, 255, 0.7); line-height: 1.4;">Concept maps, timelines, Venn diagrams, KWL charts</div>
+                                        </button>
+                                        
+                                        <button class="tool-card" onclick="generateDOKProjectFromVideo()" style="background: linear-gradient(135deg, rgba(156, 39, 176, 0.2), rgba(103, 58, 183, 0.2)); border: 2px solid rgba(156, 39, 176, 0.5); border-radius: 12px; padding: 24px; text-align: center; cursor: pointer; transition: all 0.3s ease; display: flex; flex-direction: column; align-items: center; gap: 12px;">
+                                            <div class="tool-icon" style="font-size: 48px;">🎓</div>
+                                            <div class="tool-name" style="font-size: 16px; font-weight: bold; color: #ce93d8;">DOK 3-4 Project</div>
+                                            <div class="tool-desc" style="font-size: 13px; color: rgba(255, 255, 255, 0.7); line-height: 1.4;">Strategic & extended thinking projects</div>
+                                            <div style="font-size: 11px; color: #ffeb3b; font-weight: bold;">✨ NEW</div>
+                                        </button>
+                                        
+                                    </div>
+                                    
+                                    <!-- Tool Output (hidden initially, shown after generation) -->
+                                    <div id="create-tool-output" style="display: none; flex-direction: column; height: 100%; overflow: hidden;">
+                                        
+                                        <!-- Output Header with Back Button and Export Options -->
+                                        <div id="create-output-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; padding: 15px; background: rgba(97, 218, 251, 0.1); border-radius: 8px; flex-shrink: 0;">
+                                            <div style="display: flex; align-items: center; gap: 12px;">
+                                                <button onclick="backToToolsGrid()" class="secondary-button" style="padding: 8px 16px; font-size: 14px;">← Back</button>
+                                                <h3 id="create-output-title" style="margin: 0; color: #61dafb; font-size: 18px;">Generated Content</h3>
+                                            </div>
+                                            <div style="display: flex; gap: 8px;">
+                                                <button onclick="copyCreatedContent()" class="secondary-button" style="padding: 8px 16px; font-size: 14px;">📋 Copy</button>
+                                                <button onclick="exportCreatedContentMarkdown()" class="secondary-button" style="padding: 8px 16px; font-size: 14px;">📄 Markdown</button>
+                                                <button onclick="exportCreatedContentDocx()" class="primary-button" style="padding: 8px 16px; font-size: 14px; background: #2b5797; font-weight: bold;" title="Export to Microsoft Word format">
+                                                    📄 Word (.docx)
+                                                </button>
+                                                <button onclick="createInGoogleDocs()" class="secondary-button" style="padding: 8px 16px; font-size: 14px; opacity: 0.5;" title="Coming in Phase 10">
+                                                    📝 Google Docs (Phase 10)
+                                                </button>
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- Output Content (scrollable) -->
+                                        <div id="create-output-content" style="flex: 1; overflow-y: auto; padding: 20px; background: rgba(255, 255, 255, 0.02); border-radius: 8px; border: 1px solid rgba(255, 255, 255, 0.05); font-size: 14px; line-height: 1.8;">
+                                            <!-- Generated content appears here -->
+                                        </div>
+                                        
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                </div><!-- END CURRENT VIDEO TAB -->
+                
+            </div><!-- END modal-body -->
+        </div>
+    </div>
+
+    <!-- 🎨 DIAGRAM RENDERING LIBRARIES (Phase 8 Week 3: Visual Rendering) -->
+    
+    <!-- Mermaid.js - Flowcharts and Cause/Effect diagrams -->
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    
+    <!-- D3.js - Required for d3-venn -->
+    <script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
+    
+    <!-- d3-venn - Venn Diagrams with perfect overlapping circles -->
+    <script src="https://cdn.jsdelivr.net/npm/@upsetjs/venn.js@1.4.1/build/venn.min.js"></script>
+    
+    <!-- vis-timeline - Professional interactive timelines -->
+    <link href="https://unpkg.com/vis-timeline@7.7.3/styles/vis-timeline-graph2d.min.css" rel="stylesheet" type="text/css" />
+    <script src="https://unpkg.com/vis-timeline@7.7.3/standalone/umd/vis-timeline-graph2d.min.js"></script>
+    
+    <!-- Cytoscape.js - Network graphs for Concept Maps -->
+    <script src="https://cdn.jsdelivr.net/npm/cytoscape@3.28.1/dist/cytoscape.min.js"></script>
+    
+    <!-- markmap - Use CDN that exposes globals properly -->
+    <script src="https://cdn.jsdelivr.net/npm/markmap-autoloader@0.16.0"></script>
+    
+    <!-- Initialize Mermaid -->
+    <script>
+        if (typeof mermaid !== 'undefined') {
+            mermaid.initialize({
+                startOnLoad: false,
+                theme: 'dark',
+                themeVariables: {
+                    primaryColor: '#61dafb',
+                    primaryTextColor: '#fff',
+                    primaryBorderColor: '#61dafb',
+                    lineColor: '#61dafb',
+                    secondaryColor: '#282c34',
+                    tertiaryColor: '#20232a'
+                },
+                securityLevel: 'loose',
+                flowchart: {
+                    useMaxWidth: true,
+                    htmlLabels: true,
+                    curve: 'basis'
+                }
+            });
+            console.log('✅ Mermaid.js initialized');
+        }
+        
+        // Verify all diagram libraries loaded
+        setTimeout(() => {
+            console.log('🔍 Diagram library check:');
+            console.log('  Mermaid:', typeof mermaid !== 'undefined' ? '✅' : '❌');
+            console.log('  D3:', typeof d3 !== 'undefined' ? '✅' : '❌');
+            console.log('  d3-venn (venn):', typeof venn !== 'undefined' ? '✅' : '❌');
+            console.log('  d3-venn (vennjs):', typeof vennjs !== 'undefined' ? '✅' : '❌');
+            console.log('  d3-venn (window.venn):', window.venn ? '✅' : '❌');
+            console.log('  vis-timeline:', typeof vis !== 'undefined' ? '✅' : '❌');
+            console.log('  Cytoscape:', typeof cytoscape !== 'undefined' ? '✅' : '❌');
+            console.log('  markmap:', typeof markmap !== 'undefined' ? '✅' : '❌');
+            console.log('  markmap (window):', window.markmap ? '✅' : '❌');
+        }, 1000);
+    </script>
+
+    <!-- Diagram Renderers Module -->
+    <script type="module" src="diagram-renderers.js"></script>
+
 </body>
 </html>

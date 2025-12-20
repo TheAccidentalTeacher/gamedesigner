@@ -20,6 +20,32 @@ const multiAgentFunction = require('./netlify/functions/multi-agent.cjs');
 // Import the research function handler
 const researchFunction = require('./netlify/functions/research.cjs');
 
+// Import the youtube-transcript function handler
+const youtubeTranscriptFunction = require('./netlify/functions/youtube-transcript.cjs');
+
+// Import the youtube-search function handler
+const youtubeSearchFunction = require('./netlify/functions/youtube-search.cjs');
+
+// Import the video-analyze function handler
+const videoAnalyzeFunction = require('./netlify/functions/video-analyze.cjs');
+
+// Phase 8 Week 2: Import content creation tool handlers
+const videoQuizFunction = require('./netlify/functions/video-quiz.cjs');
+const videoLessonPlanFunction = require('./netlify/functions/video-lesson-plan.cjs');
+const videoDiscussionFunction = require('./netlify/functions/video-discussion.cjs');
+
+// Phase 8 Week 3: Import DOK project, vocabulary, guided notes & graphic organizer handlers
+const videoDOKProjectFunction = require('./netlify/functions/video-dok-project.cjs');
+const videoVocabularyFunction = require('./netlify/functions/video-vocabulary.cjs');
+const videoGuidedNotesFunction = require('./netlify/functions/video-guided-notes.cjs');
+const videoGraphicOrganizerFunction = require('./netlify/functions/video-graphic-organizer.cjs');
+
+// Phase 8 Week 4: Import batch operation handlers
+const videoBatchSummaryFunction = require('./netlify/functions/video-batch-summary.cjs');
+const videoBatchQuizFunction = require('./netlify/functions/video-batch-quiz.cjs');
+const videoBatchVocabularyFunction = require('./netlify/functions/video-batch-vocabulary.cjs');
+const videoBatchStudyGuideFunction = require('./netlify/functions/video-batch-study-guide.cjs');
+
 // MIME types for static files
 const MIME_TYPES = {
   '.html': 'text/html',
@@ -169,6 +195,526 @@ const server = http.createServer(async (req, res) => {
       return;
     }
 
+    // YouTube Transcript endpoint
+    if (functionPath === 'youtube-transcript') {
+      console.log(`[${requestId}] 📹 Routing to youtube-transcript function`);
+      
+      let body = '';
+      req.on('data', chunk => {
+        body += chunk.toString();
+      });
+      
+      req.on('end', async () => {
+        try {
+          const event = {
+            httpMethod: req.method,
+            headers: req.headers,
+            body: body,
+            path: req.url,
+            queryStringParameters: {}
+          };
+          
+          const context = {};
+          
+          console.log(`[${requestId}] 📤 Calling youtube-transcript function handler...`);
+          const result = await youtubeTranscriptFunction.handler(event, context);
+          
+          const duration = Date.now() - startTime;
+          console.log(`[${requestId}] ✅ Function completed in ${duration}ms`);
+          
+          res.writeHead(result.statusCode, result.headers || {});
+          res.end(result.body);
+          
+        } catch (error) {
+          const duration = Date.now() - startTime;
+          console.error(`[${requestId}] ❌ Function error after ${duration}ms:`, error);
+          
+          res.writeHead(500, {
+            'Content-Type': 'application/json',
+            'Access-Control-Allow-Origin': '*'
+          });
+          res.end(JSON.stringify({
+            error: 'Internal server error',
+            message: error.message
+          }));
+        }
+      });
+      
+      return;
+    }
+
+    // YouTube Search endpoint
+    if (functionPath === 'youtube-search') {
+      console.log(`[${requestId}] 🔍 Routing to youtube-search function`);
+      
+      let body = '';
+      req.on('data', chunk => {
+        body += chunk.toString();
+      });
+      
+      req.on('end', async () => {
+        try {
+          const event = {
+            httpMethod: req.method,
+            headers: req.headers,
+            body: body,
+            path: req.url,
+            queryStringParameters: {}
+          };
+          
+          const context = {};
+          
+          console.log(`[${requestId}] 📤 Calling youtube-search function handler...`);
+          const result = await youtubeSearchFunction.handler(event, context);
+          
+          const duration = Date.now() - startTime;
+          console.log(`[${requestId}] ✅ Function completed in ${duration}ms`);
+          
+          res.writeHead(result.statusCode, result.headers || {});
+          res.end(result.body);
+          
+        } catch (error) {
+          const duration = Date.now() - startTime;
+          console.error(`[${requestId}] ❌ Function error after ${duration}ms:`, error);
+          
+          res.writeHead(500, {
+            'Content-Type': 'application/json',
+            'Access-Control-Allow-Origin': '*'
+          });
+          res.end(JSON.stringify({
+            error: 'Internal server error',
+            message: error.message
+          }));
+        }
+      });
+      
+      return;
+    }
+
+    // Video Analysis endpoint
+    if (functionPath === 'video-analyze') {
+      console.log(`[${requestId}] 🎬 Routing to video-analyze function`);
+      
+      let body = '';
+      req.on('data', chunk => {
+        body += chunk.toString();
+      });
+      
+      req.on('end', async () => {
+        try {
+          const event = {
+            httpMethod: req.method,
+            headers: req.headers,
+            body: body,
+            path: req.url,
+            queryStringParameters: {}
+          };
+          
+          const context = {};
+          
+          console.log(`[${requestId}] 📤 Calling video-analyze function handler...`);
+          const result = await videoAnalyzeFunction.handler(event, context);
+          
+          const duration = Date.now() - startTime;
+          console.log(`[${requestId}] ✅ Function completed in ${duration}ms`);
+          
+          res.writeHead(result.statusCode, result.headers || {});
+          res.end(result.body);
+          
+        } catch (error) {
+          const duration = Date.now() - startTime;
+          console.error(`[${requestId}] ❌ Function error after ${duration}ms:`, error);
+          
+          res.writeHead(500, {
+            'Content-Type': 'application/json',
+            'Access-Control-Allow-Origin': '*'
+          });
+          res.end(JSON.stringify({
+            error: 'Internal server error',
+            message: error.message
+          }));
+        }
+      });
+      
+      return;
+    }
+
+    // Phase 8 Week 2: Video Quiz endpoint
+    if (functionPath === 'video-quiz') {
+      console.log(`[${requestId}] 📝 Routing to video-quiz function`);
+      
+      let body = '';
+      req.on('data', chunk => { body += chunk.toString(); });
+      
+      req.on('end', async () => {
+        try {
+          const event = {
+            httpMethod: req.method,
+            headers: req.headers,
+            body: body,
+            path: req.url,
+            queryStringParameters: {}
+          };
+          
+          const result = await videoQuizFunction.handler(event, {});
+          const duration = Date.now() - startTime;
+          console.log(`[${requestId}] ✅ Quiz generated in ${duration}ms`);
+          
+          res.writeHead(result.statusCode, result.headers || {});
+          res.end(result.body);
+        } catch (error) {
+          console.error(`[${requestId}] ❌ Quiz error:`, error);
+          res.writeHead(500, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' });
+          res.end(JSON.stringify({ error: 'Quiz generation failed', message: error.message }));
+        }
+      });
+      
+      return;
+    }
+
+    // Phase 8 Week 2: Video Lesson Plan endpoint
+    if (functionPath === 'video-lesson-plan') {
+      console.log(`[${requestId}] 📚 Routing to video-lesson-plan function`);
+      
+      let body = '';
+      req.on('data', chunk => { body += chunk.toString(); });
+      
+      req.on('end', async () => {
+        try {
+          const event = {
+            httpMethod: req.method,
+            headers: req.headers,
+            body: body,
+            path: req.url,
+            queryStringParameters: {}
+          };
+          
+          const result = await videoLessonPlanFunction.handler(event, {});
+          const duration = Date.now() - startTime;
+          console.log(`[${requestId}] ✅ Lesson plan generated in ${duration}ms`);
+          
+          res.writeHead(result.statusCode, result.headers || {});
+          res.end(result.body);
+        } catch (error) {
+          console.error(`[${requestId}] ❌ Lesson plan error:`, error);
+          res.writeHead(500, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' });
+          res.end(JSON.stringify({ error: 'Lesson plan generation failed', message: error.message }));
+        }
+      });
+      
+      return;
+    }
+
+    // Phase 8 Week 2: Video Discussion Questions endpoint
+    if (functionPath === 'video-discussion') {
+      console.log(`[${requestId}] 💬 Routing to video-discussion function`);
+      
+      let body = '';
+      req.on('data', chunk => { body += chunk.toString(); });
+      
+      req.on('end', async () => {
+        try {
+          const event = {
+            httpMethod: req.method,
+            headers: req.headers,
+            body: body,
+            path: req.url,
+            queryStringParameters: {}
+          };
+          
+          const result = await videoDiscussionFunction.handler(event, {});
+          const duration = Date.now() - startTime;
+          console.log(`[${requestId}] ✅ Discussion questions generated in ${duration}ms`);
+          
+          res.writeHead(result.statusCode, result.headers || {});
+          res.end(result.body);
+        } catch (error) {
+          console.error(`[${requestId}] ❌ Discussion questions error:`, error);
+          res.writeHead(500, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' });
+          res.end(JSON.stringify({ error: 'Discussion questions generation failed', message: error.message }));
+        }
+      });
+      
+      return;
+    }
+
+    // Video DOK Project endpoint (Phase 8 Week 3)
+    if (functionPath === 'video-dok-project') {
+      console.log(`[${requestId}] 🎓 Routing to video-dok-project function`);
+      
+      let body = '';
+      req.on('data', chunk => { body += chunk.toString(); });
+      
+      req.on('end', async () => {
+        try {
+          const event = {
+            httpMethod: req.method,
+            headers: req.headers,
+            body: body,
+            path: req.url,
+            queryStringParameters: {}
+          };
+          
+          const result = await videoDOKProjectFunction.handler(event, {});
+          const duration = Date.now() - startTime;
+          console.log(`[${requestId}] ✅ DOK project generated in ${duration}ms`);
+          
+          res.writeHead(result.statusCode, result.headers || {});
+          res.end(result.body);
+        } catch (error) {
+          console.error(`[${requestId}] ❌ DOK project error:`, error);
+          res.writeHead(500, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' });
+          res.end(JSON.stringify({ error: 'DOK project generation failed', message: error.message }));
+        }
+      });
+      
+      return;
+    }
+
+    // Video Vocabulary endpoint (Phase 8 Week 3)
+    if (functionPath === 'video-vocabulary') {
+      console.log(`[${requestId}] 📚 Routing to video-vocabulary function`);
+      
+      let body = '';
+      req.on('data', chunk => { body += chunk.toString(); });
+      
+      req.on('end', async () => {
+        try {
+          const event = {
+            httpMethod: req.method,
+            headers: req.headers,
+            body: body,
+            path: req.url,
+            queryStringParameters: {}
+          };
+          
+          const result = await videoVocabularyFunction.handler(event, {});
+          const duration = Date.now() - startTime;
+          
+          console.log(`[${requestId}] ✓ Video vocabulary complete in ${duration}ms`);
+          
+          res.writeHead(result.statusCode, result.headers);
+          res.end(result.body);
+        } catch (error) {
+          console.error(`[${requestId}] ❌ Video vocabulary error:`, error);
+          res.writeHead(500, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: error.message }));
+        }
+      });
+      
+      return;
+    }
+
+    // Phase 8 Week 3: Guided Notes endpoint
+    if (functionPath === 'video-guided-notes') {
+      console.log(`[${requestId}] 📝 Routing to video-guided-notes function`);
+      
+      let body = '';
+      req.on('data', chunk => {
+        body += chunk.toString();
+        console.log(`[${requestId}] Received ${chunk.length} bytes`);
+      });
+      
+      req.on('end', async () => {
+        console.log(`[${requestId}] ✓ Request body complete (${body.length} bytes)`);
+        
+        try {
+          const event = {
+            httpMethod: req.method,
+            headers: req.headers,
+            body: body,
+            path: req.url
+          };
+          
+          const result = await videoGuidedNotesFunction.handler(event, {});
+          const duration = Date.now() - startTime;
+          console.log(`[${requestId}] ✓ Video guided notes complete in ${duration}ms`);
+          
+          res.writeHead(result.statusCode, result.headers || {});
+          res.end(result.body);
+        } catch (error) {
+          const duration = Date.now() - startTime;
+          console.error(`[${requestId}] ✗ Guided notes error after ${duration}ms:`, error.message);
+          res.writeHead(500, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: error.message }));
+        }
+      });
+      
+      return;
+    }
+
+    // Phase 8 Week 3: Graphic Organizer endpoint
+    if (functionPath === 'video-graphic-organizer') {
+      console.log(`[${requestId}] 🗺️ Routing to video-graphic-organizer function`);
+      
+      let body = '';
+      req.on('data', chunk => {
+        body += chunk.toString();
+        console.log(`[${requestId}] Received ${chunk.length} bytes`);
+      });
+      
+      req.on('end', async () => {
+        console.log(`[${requestId}] ✓ Request body complete (${body.length} bytes)`);
+        
+        try {
+          const event = {
+            httpMethod: req.method,
+            headers: req.headers,
+            body: body,
+            path: req.url
+          };
+          
+          // Ensure ANTHROPIC_API_KEY is available in process.env for the function
+          if (!process.env.ANTHROPIC_API_KEY) {
+            console.error(`[${requestId}] ❌ ANTHROPIC_API_KEY not found in environment!`);
+            throw new Error('ANTHROPIC_API_KEY not configured');
+          }
+          
+          const result = await videoGraphicOrganizerFunction.handler(event, {});
+          const duration = Date.now() - startTime;
+          console.log(`[${requestId}] ✓ Graphic organizer complete in ${duration}ms`);
+          
+          res.writeHead(result.statusCode, result.headers || {});
+          res.end(result.body);
+        } catch (error) {
+          const duration = Date.now() - startTime;
+          console.error(`[${requestId}] ✗ Graphic organizer error after ${duration}ms:`, error.message);
+          res.writeHead(500, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: error.message }));
+        }
+      });
+      
+      return;
+    }
+
+    // Phase 8 Week 4: Batch Summary endpoint
+    if (functionPath === 'video-batch-summary') {
+      console.log(`[${requestId}] 📊 Routing to video-batch-summary function`);
+      
+      let body = '';
+      req.on('data', chunk => body += chunk.toString());
+      
+      req.on('end', async () => {
+        try {
+          const event = {
+            httpMethod: req.method,
+            headers: req.headers,
+            body: body,
+            path: req.url
+          };
+          
+          const result = await videoBatchSummaryFunction.handler(event, {});
+          const duration = Date.now() - startTime;
+          console.log(`[${requestId}] ✓ Batch summary complete in ${duration}ms`);
+          
+          res.writeHead(result.statusCode, result.headers || {});
+          res.end(result.body);
+        } catch (error) {
+          console.error(`[${requestId}] ✗ Batch summary error:`, error.message);
+          res.writeHead(500, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: error.message }));
+        }
+      });
+      
+      return;
+    }
+
+    // Phase 8 Week 4: Batch Quiz endpoint
+    if (functionPath === 'video-batch-quiz') {
+      console.log(`[${requestId}] 📝 Routing to video-batch-quiz function`);
+      
+      let body = '';
+      req.on('data', chunk => body += chunk.toString());
+      
+      req.on('end', async () => {
+        try {
+          const event = {
+            httpMethod: req.method,
+            headers: req.headers,
+            body: body,
+            path: req.url
+          };
+          
+          const result = await videoBatchQuizFunction.handler(event, {});
+          const duration = Date.now() - startTime;
+          console.log(`[${requestId}] ✓ Batch quiz complete in ${duration}ms`);
+          
+          res.writeHead(result.statusCode, result.headers || {});
+          res.end(result.body);
+        } catch (error) {
+          console.error(`[${requestId}] ✗ Batch quiz error:`, error.message);
+          res.writeHead(500, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: error.message }));
+        }
+      });
+      
+      return;
+    }
+
+    // Phase 8 Week 4: Batch Vocabulary endpoint
+    if (functionPath === 'video-batch-vocabulary') {
+      console.log(`[${requestId}] 📖 Routing to video-batch-vocabulary function`);
+      
+      let body = '';
+      req.on('data', chunk => body += chunk.toString());
+      
+      req.on('end', async () => {
+        try {
+          const event = {
+            httpMethod: req.method,
+            headers: req.headers,
+            body: body,
+            path: req.url
+          };
+          
+          const result = await videoBatchVocabularyFunction.handler(event, {});
+          const duration = Date.now() - startTime;
+          console.log(`[${requestId}] ✓ Batch vocabulary complete in ${duration}ms`);
+          
+          res.writeHead(result.statusCode, result.headers || {});
+          res.end(result.body);
+        } catch (error) {
+          console.error(`[${requestId}] ✗ Batch vocabulary error:`, error.message);
+          res.writeHead(500, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: error.message }));
+        }
+      });
+      
+      return;
+    }
+
+    // Phase 8 Week 4: Batch Study Guide endpoint
+    if (functionPath === 'video-batch-study-guide') {
+      console.log(`[${requestId}] 📚 Routing to video-batch-study-guide function`);
+      
+      let body = '';
+      req.on('data', chunk => body += chunk.toString());
+      
+      req.on('end', async () => {
+        try {
+          const event = {
+            httpMethod: req.method,
+            headers: req.headers,
+            body: body,
+            path: req.url
+          };
+          
+          const result = await videoBatchStudyGuideFunction.handler(event, {});
+          const duration = Date.now() - startTime;
+          console.log(`[${requestId}] ✓ Batch study guide complete in ${duration}ms`);
+          
+          res.writeHead(result.statusCode, result.headers || {});
+          res.end(result.body);
+        } catch (error) {
+          console.error(`[${requestId}] ✗ Batch study guide error:`, error.message);
+          res.writeHead(500, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: error.message }));
+        }
+      });
+      
+      return;
+    }
+
     // Research endpoint
     if (functionPath === 'research') {
       console.log(`[${requestId}] 🔍 Routing to research function`);
@@ -275,6 +821,18 @@ server.listen(PORT, () => {
   console.log('🔧 API endpoint:     /api/multi-agent');
   console.log('🔧 API endpoint:     /.netlify/functions/research');
   console.log('🔧 API endpoint:     /api/research');
+  console.log('🎨 NEW: /api/video-quiz (Phase 8 Week 2)');
+  console.log('🎨 NEW: /api/video-lesson-plan (Phase 8 Week 2)');
+  console.log('🎨 NEW: /api/video-discussion (Phase 8 Week 2)');
+  console.log('🎓 NEW: /api/video-dok-project (Phase 8 Week 3 - DOK 3-4 Projects)');
+  console.log('📚 NEW: /api/video-vocabulary (Phase 8 Week 3 - Vocabulary Builder)');
+  console.log('📝 NEW: /api/video-guided-notes (Phase 8 Week 3 - Guided Notes)');
+  console.log('🗺️ NEW: /api/video-graphic-organizer (Phase 8 Week 3 - Graphic Organizers) ✅ COMPLETE');
+  console.log('');
+  console.log('📦 BATCH: /api/video-batch-summary (Phase 8 Week 4 - Weekly Summary)');
+  console.log('📦 BATCH: /api/video-batch-quiz (Phase 8 Week 4 - Combined Quiz)');
+  console.log('📦 BATCH: /api/video-batch-vocabulary (Phase 8 Week 4 - Master Vocabulary)');
+  console.log('📦 BATCH: /api/video-batch-study-guide (Phase 8 Week 4 - Unit Study Guide)');
   console.log('');
   console.log('Press Ctrl+C to stop');
   console.log('='.repeat(80) + '\n');

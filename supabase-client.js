@@ -54,8 +54,8 @@ export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
         // Store PKCE verifier in localStorage
         storage: window.localStorage,
         storageKey: 'supabase.auth.token',
-        // Debug mode to see what's happening
-        debug: true
+        // Debug mode disabled - was cluttering console with GoTrueClient logs
+        debug: false
     },
     db: {
         schema: 'public'
